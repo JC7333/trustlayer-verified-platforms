@@ -9,65 +9,66 @@ import {
   Clock, 
   Shield,
   Copy,
-  ExternalLink
+  ExternalLink,
+  Zap,
+  Lock
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState } from "react";
 import { toast } from "sonner";
 
 const endpoints = [
   {
     method: "POST",
     path: "/v1/verification-requests",
-    description: "Create a new verification request for an end-user profile",
+    description: "Créer une nouvelle demande de vérification pour un profil",
   },
   {
     method: "GET",
     path: "/v1/verification-requests/:id",
-    description: "Retrieve a specific verification request with its current status",
+    description: "Récupérer une demande de vérification avec son statut actuel",
   },
   {
     method: "GET",
     path: "/v1/verification-requests",
-    description: "List all verification requests with filtering and pagination",
+    description: "Lister toutes les demandes avec filtres et pagination",
   },
   {
     method: "PATCH",
     path: "/v1/verification-requests/:id",
-    description: "Update a verification request (submit, add notes, etc.)",
+    description: "Mettre à jour une demande (soumettre, ajouter notes, etc.)",
   },
   {
     method: "GET",
     path: "/v1/profiles/:id",
-    description: "Get an end-user profile with verification status",
+    description: "Obtenir un profil prestataire avec son statut de vérification",
   },
   {
     method: "POST",
     path: "/v1/profiles/:id/evidences",
-    description: "Upload evidence documents to a profile",
+    description: "Uploader des documents justificatifs sur un profil",
   },
   {
     method: "GET",
     path: "/v1/profiles/:id/badge",
-    description: "Get the public badge status for embedding",
+    description: "Obtenir le statut du badge public pour l'intégration",
   },
   {
     method: "GET",
     path: "/v1/packages",
-    description: "List available verification packages for your platform",
+    description: "Lister les packages de vérification disponibles",
   },
 ];
 
 const webhookEvents = [
-  "verification.submitted",
-  "verification.approved",
-  "verification.rejected",
-  "verification.expired",
-  "evidence.uploaded",
-  "evidence.expiring_soon",
+  { event: "verification.submitted", desc: "Une demande a été soumise" },
+  { event: "verification.approved", desc: "Vérification approuvée" },
+  { event: "verification.rejected", desc: "Vérification rejetée" },
+  { event: "verification.expired", desc: "Vérification expirée" },
+  { event: "evidence.uploaded", desc: "Document uploadé" },
+  { event: "evidence.expiring_soon", desc: "Document expire bientôt" },
 ];
 
-const codeExample = `// Create a verification request
+const codeExample = `// Créer une demande de vérification
 const response = await fetch('https://api.trustlayer.io/v1/verification-requests', {
   method: 'POST',
   headers: {
@@ -76,9 +77,9 @@ const response = await fetch('https://api.trustlayer.io/v1/verification-requests
   },
   body: JSON.stringify({
     profile_id: 'prof_abc123',
-    package_id: 'pkg_healthcare_fr',
+    package_id: 'pkg_sante_fr',
     metadata: {
-      internal_id: 'your-reference-id',
+      internal_id: 'votre-reference-interne',
     },
   }),
 });
@@ -86,18 +87,19 @@ const response = await fetch('https://api.trustlayer.io/v1/verification-requests
 const verification = await response.json();
 // { id: 'ver_xyz789', status: 'draft', ... }`;
 
-const badgeSnippet = `<!-- TrustLayer Badge Widget -->
+const badgeSnippet = `<!-- Widget Badge TrustLayer -->
 <script src="https://cdn.trustlayer.io/badge.js"></script>
 <div 
   data-trustlayer-badge="prof_abc123"
   data-theme="light"
   data-size="compact"
+  data-lang="fr"
 ></div>`;
 
 export default function ApiDocs() {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard");
+    toast.success("Copié dans le presse-papier");
   };
 
   return (
@@ -113,19 +115,19 @@ export default function ApiDocs() {
                 <Code2 className="h-7 w-7" />
               </div>
               <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-4">
-                API Documentation
+                Documentation API
               </h1>
               <p className="text-lg text-muted-foreground">
-                Integrate TrustLayer into your platform with our RESTful API. 
-                Full control over verification workflows, evidence management, and badge embedding.
+                Intégrez TrustLayer dans votre plateforme avec notre API RESTful. 
+                Contrôle total sur les workflows de vérification, la gestion des documents et l'intégration des badges.
               </p>
               <div className="flex items-center justify-center gap-4 mt-8">
-                <Link to="/sandbox">
-                  <Button variant="accent">Start with sandbox</Button>
+                <Link to="/auth">
+                  <Button variant="accent">Démarrer avec le sandbox</Button>
                 </Link>
-                <a href="https://api.trustlayer.io/docs" target="_blank" rel="noopener noreferrer">
+                <a href="#endpoints">
                   <Button variant="outline">
-                    Full API Reference
+                    Référence complète
                     <ExternalLink className="h-4 w-4" />
                   </Button>
                 </a>
@@ -137,26 +139,33 @@ export default function ApiDocs() {
         {/* Overview Cards */}
         <section className="py-16">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            <div className="grid md:grid-cols-4 gap-6 max-w-5xl mx-auto">
               <div className="bg-card rounded-xl p-6 border border-border">
                 <Key className="h-8 w-8 text-accent mb-4" />
-                <h3 className="font-semibold text-foreground mb-2">API Keys</h3>
+                <h3 className="font-semibold text-foreground mb-2">Clés API</h3>
                 <p className="text-sm text-muted-foreground">
-                  Generate and rotate API keys per environment. Scoped permissions for security.
+                  Générez et rotez vos clés par environnement avec des scopes de permissions.
                 </p>
               </div>
               <div className="bg-card rounded-xl p-6 border border-border">
                 <Webhook className="h-8 w-8 text-accent mb-4" />
                 <h3 className="font-semibold text-foreground mb-2">Webhooks</h3>
                 <p className="text-sm text-muted-foreground">
-                  Real-time event notifications for verification status changes and expirations.
+                  Notifications temps réel pour les changements de statut et expirations.
                 </p>
               </div>
               <div className="bg-card rounded-xl p-6 border border-border">
                 <Clock className="h-8 w-8 text-accent mb-4" />
                 <h3 className="font-semibold text-foreground mb-2">Rate Limits</h3>
                 <p className="text-sm text-muted-foreground">
-                  Generous rate limits with burst capacity. Enterprise plans get dedicated quotas.
+                  Limites généreuses avec capacité de burst. Quotas dédiés pour Enterprise.
+                </p>
+              </div>
+              <div className="bg-card rounded-xl p-6 border border-border">
+                <Lock className="h-8 w-8 text-accent mb-4" />
+                <h3 className="font-semibold text-foreground mb-2">Sécurité</h3>
+                <p className="text-sm text-muted-foreground">
+                  HTTPS obligatoire, signatures webhook, et chiffrement bout en bout.
                 </p>
               </div>
             </div>
@@ -164,22 +173,22 @@ export default function ApiDocs() {
         </section>
 
         {/* Endpoints */}
-        <section className="py-16 bg-secondary/30">
+        <section id="endpoints" className="py-16 bg-secondary/30">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-5xl mx-auto">
-              <h2 className="text-2xl font-bold text-foreground mb-8">Core Endpoints</h2>
+              <h2 className="text-2xl font-bold text-foreground mb-8">Points d'entrée principaux</h2>
               <div className="bg-card rounded-xl border border-border overflow-hidden">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border bg-secondary/50">
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Method</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Méthode</th>
                       <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Endpoint</th>
                       <th className="px-6 py-4 text-left text-sm font-semibold text-foreground hidden md:table-cell">Description</th>
                     </tr>
                   </thead>
                   <tbody>
                     {endpoints.map((endpoint, index) => (
-                      <tr key={index} className="border-b border-border last:border-b-0">
+                      <tr key={index} className="border-b border-border last:border-b-0 hover:bg-secondary/30 transition-colors">
                         <td className="px-6 py-4">
                           <span className={`inline-flex px-2 py-1 rounded text-xs font-mono font-semibold ${
                             endpoint.method === "GET" 
@@ -206,16 +215,19 @@ export default function ApiDocs() {
         <section className="py-16">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-5xl mx-auto">
-              <h2 className="text-2xl font-bold text-foreground mb-8">Quick Start Example</h2>
+              <h2 className="text-2xl font-bold text-foreground mb-8">Exemple rapide</h2>
               <div className="bg-primary rounded-xl overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 bg-primary/80 border-b border-primary-foreground/10">
-                  <span className="text-sm font-medium text-primary-foreground/70">JavaScript</span>
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-accent" />
+                    <span className="text-sm font-medium text-primary-foreground/70">JavaScript</span>
+                  </div>
                   <button 
                     onClick={() => copyToClipboard(codeExample)}
                     className="flex items-center gap-2 text-sm text-primary-foreground/60 hover:text-primary-foreground transition-colors"
                   >
                     <Copy className="h-4 w-4" />
-                    Copy
+                    Copier
                   </button>
                 </div>
                 <pre className="p-6 overflow-x-auto">
@@ -230,15 +242,18 @@ export default function ApiDocs() {
         <section className="py-16 bg-secondary/30">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-5xl mx-auto">
-              <h2 className="text-2xl font-bold text-foreground mb-4">Webhook Events</h2>
+              <h2 className="text-2xl font-bold text-foreground mb-4">Événements Webhook</h2>
               <p className="text-muted-foreground mb-8">
-                Subscribe to these events to receive real-time notifications about verification lifecycle changes.
+                Abonnez-vous à ces événements pour recevoir des notifications temps réel sur le cycle de vie des vérifications.
               </p>
               <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {webhookEvents.map((event) => (
-                  <div key={event} className="flex items-center gap-3 bg-card rounded-lg p-4 border border-border">
-                    <FileJson className="h-5 w-5 text-accent" />
-                    <code className="text-sm font-mono text-foreground">{event}</code>
+                {webhookEvents.map((webhook) => (
+                  <div key={webhook.event} className="bg-card rounded-lg p-4 border border-border">
+                    <div className="flex items-center gap-3 mb-2">
+                      <FileJson className="h-5 w-5 text-accent" />
+                      <code className="text-sm font-mono text-foreground">{webhook.event}</code>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{webhook.desc}</p>
                   </div>
                 ))}
               </div>
@@ -250,9 +265,9 @@ export default function ApiDocs() {
         <section className="py-16">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-5xl mx-auto">
-              <h2 className="text-2xl font-bold text-foreground mb-4">Embeddable Badge Widget</h2>
+              <h2 className="text-2xl font-bold text-foreground mb-4">Widget Badge Intégrable</h2>
               <p className="text-muted-foreground mb-8">
-                Display verification status on your platform with our lightweight, customizable badge widget.
+                Affichez le statut de vérification sur votre plateforme avec notre widget léger et personnalisable.
               </p>
               <div className="grid md:grid-cols-2 gap-8">
                 <div className="bg-primary rounded-xl overflow-hidden">
@@ -263,7 +278,7 @@ export default function ApiDocs() {
                       className="flex items-center gap-2 text-sm text-primary-foreground/60 hover:text-primary-foreground transition-colors"
                     >
                       <Copy className="h-4 w-4" />
-                      Copy
+                      Copier
                     </button>
                   </div>
                   <pre className="p-6 overflow-x-auto">
@@ -277,14 +292,38 @@ export default function ApiDocs() {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-foreground">Verified Provider</span>
+                        <span className="text-sm font-semibold text-foreground">Prestataire Vérifié</span>
                         <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-success text-success-foreground text-xs">✓</span>
                       </div>
-                      <span className="text-xs text-muted-foreground">Valid until Dec 2025</span>
+                      <span className="text-xs text-muted-foreground">Valide jusqu'au Déc 2025</span>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="py-16 gradient-hero">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-3xl font-bold text-primary-foreground mb-4">
+              Prêt à intégrer ?
+            </h2>
+            <p className="text-primary-foreground/70 mb-8 max-w-xl mx-auto">
+              Créez votre compte sandbox gratuit et commencez à explorer notre API en quelques minutes.
+            </p>
+            <div className="flex items-center justify-center gap-4">
+              <Link to="/auth">
+                <Button variant="hero" size="lg">
+                  Créer un compte sandbox
+                </Button>
+              </Link>
+              <Link to="/contact">
+                <Button variant="outline" size="lg" className="bg-primary-foreground/10 text-primary-foreground border-primary-foreground/20 hover:bg-primary-foreground/20">
+                  Parler à un développeur
+                </Button>
+              </Link>
             </div>
           </div>
         </section>
