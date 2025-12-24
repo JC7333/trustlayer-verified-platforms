@@ -14,16 +14,754 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      api_keys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          platform_id: string
+          scopes: string[] | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          platform_id: string
+          scopes?: string[] | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          platform_id?: string
+          scopes?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_keys_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platforms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip_address: string | null
+          new_data: Json | null
+          old_data: Json | null
+          platform_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          platform_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          platform_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platforms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_requests: {
+        Row: {
+          company: string | null
+          created_at: string
+          email: string
+          id: string
+          message: string | null
+          name: string
+          phone: string | null
+          request_type: string
+          status: string | null
+          vertical: string | null
+          volume: string | null
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          message?: string | null
+          name: string
+          phone?: string | null
+          request_type?: string
+          status?: string | null
+          vertical?: string | null
+          volume?: string | null
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string | null
+          name?: string
+          phone?: string | null
+          request_type?: string
+          status?: string | null
+          vertical?: string | null
+          volume?: string | null
+        }
+        Relationships: []
+      }
+      end_user_profiles: {
+        Row: {
+          address: Json | null
+          business_name: string
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          external_id: string | null
+          id: string
+          metadata: Json | null
+          platform_id: string
+          public_badge_id: string | null
+          trust_score: number | null
+          updated_at: string
+        }
+        Insert: {
+          address?: Json | null
+          business_name: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          external_id?: string | null
+          id?: string
+          metadata?: Json | null
+          platform_id: string
+          public_badge_id?: string | null
+          trust_score?: number | null
+          updated_at?: string
+        }
+        Update: {
+          address?: Json | null
+          business_name?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          external_id?: string | null
+          id?: string
+          metadata?: Json | null
+          platform_id?: string
+          public_badge_id?: string | null
+          trust_score?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "end_user_profiles_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platforms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evidences: {
+        Row: {
+          ai_analysis: Json | null
+          created_at: string
+          document_name: string
+          document_type: string
+          expires_at: string | null
+          file_path: string
+          file_size: number | null
+          id: string
+          metadata: Json | null
+          mime_type: string | null
+          ocr_data: Json | null
+          platform_id: string
+          profile_id: string
+          request_id: string | null
+          rules_item_id: string | null
+          status: Database["public"]["Enums"]["evidence_status"]
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          created_at?: string
+          document_name: string
+          document_type: string
+          expires_at?: string | null
+          file_path: string
+          file_size?: number | null
+          id?: string
+          metadata?: Json | null
+          mime_type?: string | null
+          ocr_data?: Json | null
+          platform_id: string
+          profile_id: string
+          request_id?: string | null
+          rules_item_id?: string | null
+          status?: Database["public"]["Enums"]["evidence_status"]
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          ai_analysis?: Json | null
+          created_at?: string
+          document_name?: string
+          document_type?: string
+          expires_at?: string | null
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          metadata?: Json | null
+          mime_type?: string | null
+          ocr_data?: Json | null
+          platform_id?: string
+          profile_id?: string
+          request_id?: string | null
+          rules_item_id?: string | null
+          status?: Database["public"]["Enums"]["evidence_status"]
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evidences_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platforms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evidences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "end_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evidences_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "verification_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evidences_rules_item_id_fkey"
+            columns: ["rules_item_id"]
+            isOneToOne: false
+            referencedRelation: "rules_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platforms: {
+        Row: {
+          created_at: string
+          id: string
+          logo_url: string | null
+          name: string
+          primary_color: string | null
+          settings: Json | null
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name: string
+          primary_color?: string | null
+          settings?: Json | null
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          primary_color?: string | null
+          settings?: Json | null
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      review_decisions: {
+        Row: {
+          checklist: Json | null
+          created_at: string
+          decision: string
+          id: string
+          notes: string | null
+          request_id: string
+          reviewer_id: string
+        }
+        Insert: {
+          checklist?: Json | null
+          created_at?: string
+          decision: string
+          id?: string
+          notes?: string | null
+          request_id: string
+          reviewer_id: string
+        }
+        Update: {
+          checklist?: Json | null
+          created_at?: string
+          decision?: string
+          id?: string
+          notes?: string | null
+          request_id?: string
+          reviewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_decisions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "verification_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rules_items: {
+        Row: {
+          created_at: string
+          description: string | null
+          document_type: string
+          expiration_days: number | null
+          id: string
+          is_required: boolean | null
+          name: string
+          package_id: string
+          score_weight: number | null
+          validation_rules: Json | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          document_type: string
+          expiration_days?: number | null
+          id?: string
+          is_required?: boolean | null
+          name: string
+          package_id: string
+          score_weight?: number | null
+          validation_rules?: Json | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          document_type?: string
+          expiration_days?: number | null
+          id?: string
+          is_required?: boolean | null
+          name?: string
+          package_id?: string
+          score_weight?: number | null
+          validation_rules?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rules_items_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "rules_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rules_packages: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_template: boolean | null
+          name: string
+          platform_id: string | null
+          scoring_config: Json | null
+          updated_at: string
+          validity_days: number | null
+          vertical: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_template?: boolean | null
+          name: string
+          platform_id?: string | null
+          scoring_config?: Json | null
+          updated_at?: string
+          validity_days?: number | null
+          vertical: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_template?: boolean | null
+          name?: string
+          platform_id?: string | null
+          scoring_config?: Json | null
+          updated_at?: string
+          validity_days?: number | null
+          vertical?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rules_packages_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platforms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plan_name: string
+          platform_id: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          verifications_included: number | null
+          verifications_used: number | null
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_name?: string
+          platform_id: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          verifications_included?: number | null
+          verifications_used?: number | null
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_name?: string
+          platform_id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          verifications_included?: number | null
+          verifications_used?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platforms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          platform_id: string
+          quantity: number | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          platform_id: string
+          quantity?: number | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          platform_id?: string
+          quantity?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_events_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platforms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          platform_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          platform_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          platform_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platforms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      verification_requests: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          metadata: Json | null
+          notes: string | null
+          package_id: string
+          platform_id: string
+          priority: number | null
+          profile_id: string
+          reviewed_at: string | null
+          sla_deadline: string | null
+          status: Database["public"]["Enums"]["verification_status"]
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          package_id: string
+          platform_id: string
+          priority?: number | null
+          profile_id: string
+          reviewed_at?: string | null
+          sla_deadline?: string | null
+          status?: Database["public"]["Enums"]["verification_status"]
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          package_id?: string
+          platform_id?: string
+          priority?: number | null
+          profile_id?: string
+          reviewed_at?: string | null
+          sla_deadline?: string | null
+          status?: Database["public"]["Enums"]["verification_status"]
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_requests_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "rules_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verification_requests_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platforms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verification_requests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "end_user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhooks: {
+        Row: {
+          created_at: string
+          events: string[]
+          failure_count: number | null
+          id: string
+          is_active: boolean | null
+          last_triggered_at: string | null
+          platform_id: string
+          secret: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          events: string[]
+          failure_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          platform_id: string
+          secret: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          events?: string[]
+          failure_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          platform_id?: string
+          secret?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhooks_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platforms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_platforms: { Args: { _user_id: string }; Returns: string[] }
+      has_platform_access: {
+        Args: { _platform_id: string; _user_id: string }
+        Returns: boolean
+      }
+      has_role: {
+        Args: {
+          _platform_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "platform_owner" | "platform_admin" | "reviewer" | "viewer"
+      evidence_status: "pending" | "valid" | "expired" | "rejected"
+      verification_status:
+        | "draft"
+        | "submitted"
+        | "in_review"
+        | "approved"
+        | "rejected"
+        | "expired"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +888,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["platform_owner", "platform_admin", "reviewer", "viewer"],
+      evidence_status: ["pending", "valid", "expired", "rejected"],
+      verification_status: [
+        "draft",
+        "submitted",
+        "in_review",
+        "approved",
+        "rejected",
+        "expired",
+      ],
+    },
   },
 } as const
