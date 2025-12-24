@@ -5,11 +5,11 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { label: "Product", href: "/#features" },
-  { label: "Pricing", href: "/pricing" },
-  { label: "Use Cases", href: "/use-cases" },
-  { label: "API Docs", href: "/docs" },
-  { label: "Security", href: "/security" },
+  { label: "Produit", href: "/#features" },
+  { label: "Tarifs", href: "/pricing" },
+  { label: "Cas d'usage", href: "/use-cases" },
+  { label: "API", href: "/docs" },
+  { label: "Sécurité", href: "/security" },
 ];
 
 export function MarketingNav() {
@@ -53,14 +53,14 @@ export function MarketingNav() {
                 Contact
               </Button>
             </Link>
-            <Link to="/login">
+            <Link to="/app">
               <Button variant="outline" size="sm">
-                Sign in
+                Connexion
               </Button>
             </Link>
             <Link to="/demo">
               <Button variant="accent" size="sm">
-                Book a demo
+                Réserver une démo
               </Button>
             </Link>
           </div>
@@ -90,11 +90,11 @@ export function MarketingNav() {
               </Link>
             ))}
             <div className="pt-4 border-t border-border flex flex-col gap-2">
-              <Link to="/login" onClick={() => setMobileOpen(false)}>
-                <Button variant="outline" className="w-full">Sign in</Button>
+              <Link to="/app" onClick={() => setMobileOpen(false)}>
+                <Button variant="outline" className="w-full">Connexion</Button>
               </Link>
               <Link to="/demo" onClick={() => setMobileOpen(false)}>
-                <Button variant="accent" className="w-full">Book a demo</Button>
+                <Button variant="accent" className="w-full">Réserver une démo</Button>
               </Link>
             </div>
           </div>

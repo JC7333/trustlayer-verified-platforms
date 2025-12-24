@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Shield } from "lucide-react";
+import { ArrowRight, Shield, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export function CTASection() {
@@ -11,33 +11,38 @@ export function CTASection() {
       <div className="absolute bottom-0 left-0 w-80 h-80 bg-accent/10 rounded-full blur-3xl" />
 
       <div className="container relative mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl mx-auto text-center">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl gradient-accent shadow-glow mb-8">
-            <Shield className="h-8 w-8 text-accent-foreground" />
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="inline-flex h-20 w-20 items-center justify-center rounded-3xl gradient-accent shadow-glow mb-8">
+            <Shield className="h-10 w-10 text-accent-foreground" />
           </div>
 
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-primary-foreground mb-6">
-            Ready to streamline your verification workflow?
+            Prêt à automatiser vos vérifications ?
           </h2>
 
-          <p className="text-lg text-primary-foreground/70 mb-10 max-w-xl mx-auto">
-            Join 500+ platforms that trust TrustLayer for eligibility verification, 
-            proof management, and compliance workflows.
+          <p className="text-lg sm:text-xl text-primary-foreground/70 mb-10 max-w-2xl mx-auto">
+            Rejoignez les 500+ plateformes qui font confiance à TrustLayer pour leurs workflows 
+            de vérification, preuves et conformité.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
             <Link to="/demo">
               <Button variant="hero" size="xl" className="group">
-                Book a demo
+                Réserver une démo
                 <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
             <Link to="/sandbox">
               <Button variant="hero-outline" size="xl">
-                Try sandbox free
+                <Sparkles className="h-5 w-5" />
+                Essayer gratuitement
               </Button>
             </Link>
           </div>
+
+          <p className="text-sm text-primary-foreground/50">
+            Démo personnalisée de 30 min • Sandbox illimité pendant 14 jours • Sans engagement
+          </p>
         </div>
       </div>
     </section>
