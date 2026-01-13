@@ -58,7 +58,9 @@ export default function Contact() {
       toast.success("Merci pour votre message ! Nous vous répondrons sous 24h.");
       setFormData({ name: "", email: "", company: "", message: "" });
     } catch (error) {
-      console.error("Error submitting contact form:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error submitting contact form:", error);
+      }
       toast.error("Une erreur est survenue. Veuillez réessayer.");
     } finally {
       setIsSubmitting(false);

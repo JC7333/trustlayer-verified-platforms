@@ -70,7 +70,9 @@ export function usePlatform() {
           }
         }
       } catch (error) {
-        console.error("Error fetching platforms:", error);
+        if (import.meta.env.DEV) {
+          console.error("Error fetching platforms:", error);
+        }
       } finally {
         setLoading(false);
       }
