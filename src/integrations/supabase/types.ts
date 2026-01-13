@@ -168,6 +168,7 @@ export type Database = {
           metadata: Json | null
           platform_id: string
           public_badge_id: string | null
+          status: string
           trust_score: number | null
           updated_at: string
         }
@@ -182,6 +183,7 @@ export type Database = {
           metadata?: Json | null
           platform_id: string
           public_badge_id?: string | null
+          status?: string
           trust_score?: number | null
           updated_at?: string
         }
@@ -196,6 +198,7 @@ export type Database = {
           metadata?: Json | null
           platform_id?: string
           public_badge_id?: string | null
+          status?: string
           trust_score?: number | null
           updated_at?: string
         }
@@ -216,15 +219,22 @@ export type Database = {
           document_name: string
           document_type: string
           expires_at: string | null
+          extraction_confidence: number | null
           file_path: string
           file_size: number | null
+          flags: string[] | null
           id: string
+          issued_at: string | null
           metadata: Json | null
           mime_type: string | null
           ocr_data: Json | null
           platform_id: string
           profile_id: string
+          rejection_reason: string | null
           request_id: string | null
+          review_status: string | null
+          reviewed_at: string | null
+          reviewer_id: string | null
           rules_item_id: string | null
           status: Database["public"]["Enums"]["evidence_status"]
           updated_at: string
@@ -236,15 +246,22 @@ export type Database = {
           document_name: string
           document_type: string
           expires_at?: string | null
+          extraction_confidence?: number | null
           file_path: string
           file_size?: number | null
+          flags?: string[] | null
           id?: string
+          issued_at?: string | null
           metadata?: Json | null
           mime_type?: string | null
           ocr_data?: Json | null
           platform_id: string
           profile_id: string
+          rejection_reason?: string | null
           request_id?: string | null
+          review_status?: string | null
+          reviewed_at?: string | null
+          reviewer_id?: string | null
           rules_item_id?: string | null
           status?: Database["public"]["Enums"]["evidence_status"]
           updated_at?: string
@@ -256,15 +273,22 @@ export type Database = {
           document_name?: string
           document_type?: string
           expires_at?: string | null
+          extraction_confidence?: number | null
           file_path?: string
           file_size?: number | null
+          flags?: string[] | null
           id?: string
+          issued_at?: string | null
           metadata?: Json | null
           mime_type?: string | null
           ocr_data?: Json | null
           platform_id?: string
           profile_id?: string
+          rejection_reason?: string | null
           request_id?: string | null
+          review_status?: string | null
+          reviewed_at?: string | null
+          reviewer_id?: string | null
           rules_item_id?: string | null
           status?: Database["public"]["Enums"]["evidence_status"]
           updated_at?: string
@@ -297,6 +321,130 @@ export type Database = {
             columns: ["rules_item_id"]
             isOneToOne: false
             referencedRelation: "rules_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      magic_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          end_user_id: string
+          expires_at: string
+          id: string
+          platform_id: string
+          revoked_at: string | null
+          token_hash: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          end_user_id: string
+          expires_at: string
+          id?: string
+          platform_id: string
+          revoked_at?: string | null
+          token_hash: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          end_user_id?: string
+          expires_at?: string
+          id?: string
+          platform_id?: string
+          revoked_at?: string | null
+          token_hash?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "magic_links_end_user_id_fkey"
+            columns: ["end_user_id"]
+            isOneToOne: false
+            referencedRelation: "end_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "magic_links_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platforms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications_queue: {
+        Row: {
+          body: string | null
+          created_at: string
+          end_user_id: string | null
+          error_message: string | null
+          evidence_id: string | null
+          id: string
+          metadata: Json | null
+          notification_type: string
+          platform_id: string
+          recipient_email: string | null
+          recipient_phone: string | null
+          sent_at: string | null
+          status: string
+          subject: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          end_user_id?: string | null
+          error_message?: string | null
+          evidence_id?: string | null
+          id?: string
+          metadata?: Json | null
+          notification_type: string
+          platform_id: string
+          recipient_email?: string | null
+          recipient_phone?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          end_user_id?: string | null
+          error_message?: string | null
+          evidence_id?: string | null
+          id?: string
+          metadata?: Json | null
+          notification_type?: string
+          platform_id?: string
+          recipient_email?: string | null
+          recipient_phone?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_queue_end_user_id_fkey"
+            columns: ["end_user_id"]
+            isOneToOne: false
+            referencedRelation: "end_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_queue_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "evidences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_queue_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platforms"
             referencedColumns: ["id"]
           },
         ]
