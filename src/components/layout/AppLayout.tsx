@@ -15,10 +15,12 @@ import {
   Menu,
   Bell,
   Search,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Tableau de bord", href: "/app/dashboard" },
@@ -39,6 +41,16 @@ export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { loading } = useRequireAuth();
+
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex">
