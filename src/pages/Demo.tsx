@@ -81,7 +81,9 @@ export default function Demo() {
       toast.success("Demande reçue ! Consultez votre email pour les créneaux disponibles.");
       setFormData({ name: "", email: "", company: "", vertical: "", volume: "" });
     } catch (error) {
-      console.error("Error submitting demo request:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error submitting demo request:", error);
+      }
       toast.error("Une erreur est survenue. Veuillez réessayer.");
     } finally {
       setIsSubmitting(false);
