@@ -1,1 +1,10 @@
 project_id = "seztdbhanafqiknypiae"
+
+[functions.create-magic-link]
+verify_jwt = false
+
+[functions.validate-magic-link]
+verify_jwt = false
+
+[functions.submit-evidence]
+verify_jwt = false

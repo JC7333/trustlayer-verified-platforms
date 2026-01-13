@@ -13,6 +13,10 @@ import Contact from "./pages/Contact";
 import Demo from "./pages/Demo";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/app/Dashboard";
+import Providers from "./pages/app/Providers";
+import Review from "./pages/app/Review";
+import Rules from "./pages/app/Rules";
+import ProviderUpload from "./pages/ProviderUpload";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +42,12 @@ const App = () => (
             {/* App Routes */}
             <Route path="/app" element={<Dashboard />} />
             <Route path="/app/dashboard" element={<Dashboard />} />
+            <Route path="/app/providers" element={<Providers />} />
+            <Route path="/app/review" element={<Review />} />
+            <Route path="/app/rules" element={<Rules />} />
+            
+            {/* Public Provider Portal */}
+            <Route path="/u/:token" element={<ProviderUpload />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
