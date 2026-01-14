@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+// Note: This function now triggers deposit confirmation emails after successful upload
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
@@ -183,6 +184,61 @@ serve(async (req: Request): Promise<Response> => {
       entity_id: evidence.id,
       new_data: { document_type, document_name, file_size: fileBuffer.length },
     });
+
+    // Get platform name for email
+    const { data: platform } = await supabase
+      .from("platforms")
+      .select("name")
+      .eq("id", platformId)
+      .single();
+
+    // Get end user details for email
+    const { data: endUserDetails } = await supabase
+      .from("end_user_profiles")
+      .select("business_name, contact_email")
+      .eq("id", profileId)
+      .single();
+
+    // Send deposit confirmation email if email available
+    if (endUserDetails?.contact_email && platform?.name) {
+      // Create notification in queue
+      await supabase.from("notifications_queue").insert({
+        platform_id: platformId,
+        end_user_id: profileId,
+        evidence_id: evidence.id,
+        notification_type: "deposit_confirmation",
+        recipient_email: endUserDetails.contact_email,
+        subject: `Confirmation de dépôt - ${platform.name}`,
+        body: JSON.stringify({
+          document_name,
+          platform_name: platform.name,
+          provider_name: endUserDetails.business_name,
+        }),
+        status: "pending",
+      });
+
+      // Trigger send-notification
+      try {
+        await supabase.functions.invoke("send-notification", {
+          body: {
+            type: "deposit_confirmation",
+            to_email: endUserDetails.contact_email,
+            platform_name: platform.name,
+            provider_name: endUserDetails.business_name,
+            document_name,
+          },
+        });
+        
+        // Update notification status
+        await supabase
+          .from("notifications_queue")
+          .update({ status: "sent", sent_at: new Date().toISOString() })
+          .eq("evidence_id", evidence.id)
+          .eq("notification_type", "deposit_confirmation");
+      } catch (emailErr) {
+        console.error("Failed to send deposit confirmation:", emailErr);
+      }
+    }
 
     console.log(`Evidence ${evidence.id} uploaded for profile ${profileId}`);
 

@@ -16,6 +16,7 @@ import Dashboard from "./pages/app/Dashboard";
 import Providers from "./pages/app/Providers";
 import Review from "./pages/app/Review";
 import Rules from "./pages/app/Rules";
+import Notifications from "./pages/app/Notifications";
 import ProviderUpload from "./pages/ProviderUpload";
 import NotFound from "./pages/NotFound";
 
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/app/providers" element={<Providers />} />
             <Route path="/app/review" element={<Review />} />
             <Route path="/app/rules" element={<Rules />} />
+            <Route path="/app/notifications" element={<Notifications />} />
             
             {/* Public Provider Portal */}
             <Route path="/u/:token" element={<ProviderUpload />} />

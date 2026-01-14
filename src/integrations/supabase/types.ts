@@ -325,6 +325,70 @@ export type Database = {
           },
         ]
       }
+      expiry_queue: {
+        Row: {
+          created_at: string
+          current_stage: string | null
+          end_user_id: string
+          evidence_id: string
+          expires_at: string
+          id: string
+          is_required: boolean | null
+          last_notified_at: string | null
+          next_reminder_at: string | null
+          platform_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_stage?: string | null
+          end_user_id: string
+          evidence_id: string
+          expires_at: string
+          id?: string
+          is_required?: boolean | null
+          last_notified_at?: string | null
+          next_reminder_at?: string | null
+          platform_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_stage?: string | null
+          end_user_id?: string
+          evidence_id?: string
+          expires_at?: string
+          id?: string
+          is_required?: boolean | null
+          last_notified_at?: string | null
+          next_reminder_at?: string | null
+          platform_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expiry_queue_end_user_id_fkey"
+            columns: ["end_user_id"]
+            isOneToOne: false
+            referencedRelation: "end_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expiry_queue_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "evidences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expiry_queue_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platforms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       magic_links: {
         Row: {
           created_at: string
