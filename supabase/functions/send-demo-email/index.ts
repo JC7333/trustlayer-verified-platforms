@@ -13,6 +13,28 @@ interface DemoEmailRequest {
   volume: string;
 }
 
+// Simple email validation regex
+function isValidEmail(email: string): boolean {
+  if (!email || typeof email !== "string") return false;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email.trim());
+}
+
+// Extract pure email from "Name <email>" format or plain email
+function extractEmail(input: string): string | null {
+  if (!input || typeof input !== "string") return null;
+  const trimmed = input.trim();
+  
+  // Check for "Name <email>" format
+  const bracketMatch = trimmed.match(/<([^>]+)>/);
+  if (bracketMatch) {
+    return bracketMatch[1].trim();
+  }
+  
+  // Plain email
+  return trimmed;
+}
+
 serve(async (req: Request): Promise<Response> => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -23,6 +45,12 @@ serve(async (req: Request): Promise<Response> => {
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     const DEMO_NOTIFY_TO_EMAIL = Deno.env.get("DEMO_NOTIFY_TO_EMAIL");
     const APP_PUBLIC_URL = Deno.env.get("APP_PUBLIC_URL") || "https://preuvio.com";
+
+    console.log("[send-demo-email] Checking environment variables...");
+    console.log("[send-demo-email] RESEND_API_KEY configured:", !!RESEND_API_KEY);
+    console.log("[send-demo-email] DEMO_NOTIFY_TO_EMAIL configured:", !!DEMO_NOTIFY_TO_EMAIL);
+    console.log("[send-demo-email] DEMO_NOTIFY_TO_EMAIL type:", typeof DEMO_NOTIFY_TO_EMAIL);
+    console.log("[send-demo-email] DEMO_NOTIFY_TO_EMAIL length:", DEMO_NOTIFY_TO_EMAIL?.length || 0);
 
     if (!RESEND_API_KEY) {
       console.error("[send-demo-email] RESEND_API_KEY is not configured");
@@ -36,6 +64,21 @@ serve(async (req: Request): Promise<Response> => {
       console.error("[send-demo-email] DEMO_NOTIFY_TO_EMAIL is not configured");
       return new Response(
         JSON.stringify({ error: "Demo notification email not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate the recipient email format
+    const recipientEmail = extractEmail(DEMO_NOTIFY_TO_EMAIL);
+    console.log("[send-demo-email] Extracted recipient email valid:", isValidEmail(recipientEmail || ""));
+    
+    if (!recipientEmail || !isValidEmail(recipientEmail)) {
+      console.error("[send-demo-email] Invalid DEMO_NOTIFY_TO_EMAIL format. Must be 'email@example.com' or 'Name <email@example.com>'");
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid recipient email configuration",
+          hint: "DEMO_NOTIFY_TO_EMAIL must be 'email@example.com' or 'Name <email@example.com>'"
+        }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
