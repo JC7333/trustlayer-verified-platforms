@@ -27,8 +27,8 @@ const navItems = [
   { icon: Users, label: "Prestataires", href: "/app/providers" },
   { icon: FileCheck, label: "Console de revue", href: "/app/review" },
   { icon: Bell, label: "Notifications", href: "/app/notifications" },
-  { icon: Settings2, label: "Packs de règles", href: "/app/rules" },
-  { icon: FolderLock, label: "Coffre-fort", href: "/app/evidence" },
+  { icon: Settings2, label: "Expirations", href: "/app/expirations" },
+  { icon: FolderLock, label: "Packs de règles", href: "/app/rules" },
   { icon: Code2, label: "API & Webhooks", href: "/app/api" },
   { icon: CreditCard, label: "Facturation", href: "/app/billing" },
 ];
