@@ -8,3 +8,12 @@ verify_jwt = false
 
 [functions.submit-evidence]
 verify_jwt = false
+
+[functions.send-notification]
+verify_jwt = false
+
+[functions.daily-expirations-job]
+verify_jwt = false
+
+[functions.export-audit]
+verify_jwt = false

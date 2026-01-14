@@ -87,10 +87,10 @@ export default function Dashboard() {
             <h1 className="text-2xl font-bold text-foreground">Tableau de bord</h1>
             <p className="text-muted-foreground">Vue d'ensemble de votre pipeline de vérification</p>
           </div>
-          <Link to="/app/verifications/new">
+          <Link to="/app/providers">
             <Button variant="accent">
               <FileCheck className="h-4 w-4" />
-              Nouvelle vérification
+              Nouveau prestataire
             </Button>
           </Link>
         </div>
@@ -195,10 +195,10 @@ export default function Dashboard() {
           <div className="bg-card rounded-xl border border-border p-6">
             <h2 className="font-semibold text-foreground mb-4">Actions rapides</h2>
             <div className="space-y-3">
-              <Link to="/app/verifications/new">
+              <Link to="/app/providers">
                 <Button variant="outline" className="w-full justify-start">
                   <FileCheck className="h-4 w-4" />
-                  Créer une demande
+                  Ajouter un prestataire
                 </Button>
               </Link>
               <Link to="/app/review">

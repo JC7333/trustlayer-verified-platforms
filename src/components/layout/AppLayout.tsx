@@ -24,10 +24,10 @@ import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Tableau de bord", href: "/app/dashboard" },
-  { icon: FileCheck, label: "Vérifications", href: "/app/verifications" },
+  { icon: Users, label: "Prestataires", href: "/app/providers" },
+  { icon: FileCheck, label: "Console de revue", href: "/app/review" },
+  { icon: Settings2, label: "Packs de règles", href: "/app/rules" },
   { icon: FolderLock, label: "Coffre-fort", href: "/app/evidence" },
-  { icon: Settings2, label: "Moteur de règles", href: "/app/rules" },
-  { icon: Users, label: "Console Reviewer", href: "/app/review" },
   { icon: BadgeCheck, label: "Badges", href: "/app/badges" },
   { icon: Code2, label: "API & Webhooks", href: "/app/api" },
   { icon: CreditCard, label: "Facturation", href: "/app/billing" },
