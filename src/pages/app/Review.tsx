@@ -87,6 +87,7 @@ export default function Review() {
   const [processing, setProcessing] = useState(false);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [loadingUrl, setLoadingUrl] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (currentPlatform) {
@@ -259,6 +260,37 @@ export default function Review() {
     }
   };
 
+  const handleExport = async () => {
+    if (!currentPlatform) return;
+    
+    setExporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("export-audit", {
+        body: { platform_id: currentPlatform.id },
+      });
+
+      if (error) throw error;
+
+      // Download the CSV
+      const blob = new Blob([data], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `audit-export-${new Date().toISOString().split("T")[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Export téléchargé");
+    } catch (err) {
+      if (import.meta.env.DEV) console.error("Error exporting:", err);
+      toast.error("Erreur lors de l'export");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const filteredEvidences = evidences.filter(e =>
     e.end_user_profiles.business_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     e.document_name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -309,6 +341,18 @@ export default function Review() {
               ))}
             </SelectContent>
           </Select>
+          <Button 
+            variant="outline" 
+            onClick={handleExport}
+            disabled={exporting}
+          >
+            {exporting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            <span className="hidden sm:inline ml-1">Export CSV</span>
+          </Button>
         </div>
 
         {/* Evidence List */}
