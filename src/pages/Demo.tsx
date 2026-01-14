@@ -67,7 +67,8 @@ export default function Demo() {
     setErrors({});
     
     try {
-      const { error } = await supabase.from("contact_requests").insert({
+      // Insert into database
+      const { error: dbError } = await supabase.from("contact_requests").insert({
         name: formData.name,
         email: formData.email,
         company: formData.company,
@@ -76,7 +77,23 @@ export default function Demo() {
         request_type: "demo",
       });
       
-      if (error) throw error;
+      if (dbError) throw dbError;
+      
+      // Send email notification via Edge Function
+      const { error: emailError } = await supabase.functions.invoke("send-demo-email", {
+        body: {
+          name: formData.name,
+          email: formData.email,
+          company: formData.company,
+          vertical: formData.vertical,
+          volume: formData.volume,
+        },
+      });
+      
+      if (emailError) {
+        console.error("Email notification failed:", emailError);
+        // Don't fail the whole request if email fails
+      }
       
       toast.success("Demande reçue ! Consultez votre email pour les créneaux disponibles.");
       setFormData({ name: "", email: "", company: "", vertical: "", volume: "" });
