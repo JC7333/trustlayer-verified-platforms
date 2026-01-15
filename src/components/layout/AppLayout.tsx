@@ -16,6 +16,7 @@ import {
   Bell,
   Search,
   Loader2,
+  Inbox,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Tableau de bord", href: "/app/dashboard" },
+  { icon: Inbox, label: "Inbox", href: "/app/inbox" },
   { icon: Users, label: "Prestataires", href: "/app/providers" },
   { icon: FileCheck, label: "Console de revue", href: "/app/review" },
   { icon: Bell, label: "Notifications", href: "/app/notifications" },
