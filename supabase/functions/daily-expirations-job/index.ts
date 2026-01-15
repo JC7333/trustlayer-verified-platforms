@@ -9,17 +9,51 @@ const corsHeaders = {
 // Thresholds for expiration reminders (in days)
 const EXPIRATION_THRESHOLDS = [30, 7, 1, 0];
 
+// Secret token for cron job authentication (should be set in environment)
+const CRON_SECRET = Deno.env.get("CRON_JOB_SECRET");
+
 serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   const startTime = Date.now();
-  console.log("Starting daily expirations job...");
+  console.log("[daily-expirations-job] Starting...");
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // === AUTHENTICATION CHECK ===
+    // This function should only be called by:
+    // 1. Cron jobs with a secret bearer token
+    // 2. Service role calls (internal)
+    const authHeader = req.headers.get("Authorization");
+    
+    if (!authHeader?.startsWith("Bearer ")) {
+      console.error("[daily-expirations-job] Missing Authorization header");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    
+    // Allow service role key OR cron secret
+    const isServiceRole = token === supabaseServiceKey;
+    const isCronSecret = CRON_SECRET && token === CRON_SECRET;
+    
+    if (!isServiceRole && !isCronSecret) {
+      console.error("[daily-expirations-job] Invalid authentication token");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized - Invalid credentials" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`[daily-expirations-job] Authenticated via ${isServiceRole ? 'service_role' : 'cron_secret'}`);
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const today = new Date();
@@ -57,11 +91,11 @@ serve(async (req: Request): Promise<Response> => {
       .eq("review_status", "approved");
 
     if (evidenceError) {
-      console.error("Error fetching evidences:", evidenceError);
+      console.error("[daily-expirations-job] Error fetching evidences:", evidenceError);
       throw evidenceError;
     }
 
-    console.log(`Found ${evidences?.length || 0} evidences with expiration dates`);
+    console.log(`[daily-expirations-job] Found ${evidences?.length || 0} evidences with expiration dates`);
 
     for (const evidence of evidences || []) {
       stats.checked++;
@@ -116,7 +150,7 @@ serve(async (req: Request): Promise<Response> => {
         .single();
 
       if (existingNotif) {
-        console.log(`Notification already sent for evidence ${evidence.id} today`);
+        console.log(`[daily-expirations-job] Notification already sent for evidence ${evidence.id} today`);
         continue;
       }
 
@@ -145,13 +179,13 @@ serve(async (req: Request): Promise<Response> => {
         });
 
       if (notifError) {
-        console.error(`Error creating notification for evidence ${evidence.id}:`, notifError);
+        console.error(`[daily-expirations-job] Error creating notification for evidence ${evidence.id}:`, notifError);
         stats.errors++;
         continue;
       }
 
       stats.notifications_created++;
-      console.log(`Created ${notificationType} notification for ${endUser.business_name} - ${evidence.document_name}`);
+      console.log(`[daily-expirations-job] Created ${notificationType} notification for ${endUser.business_name} - ${evidence.document_name}`);
 
       // If expired and required, block the end user
       if (daysUntilExpiry === 0 && isRequired && endUser.status !== "blocked") {
@@ -164,11 +198,11 @@ serve(async (req: Request): Promise<Response> => {
           .eq("id", endUser.id);
 
         if (blockError) {
-          console.error(`Error blocking end user ${endUser.id}:`, blockError);
+          console.error(`[daily-expirations-job] Error blocking end user ${endUser.id}:`, blockError);
           stats.errors++;
         } else {
           stats.blocked++;
-          console.log(`Blocked end user ${endUser.business_name} due to expired required document`);
+          console.log(`[daily-expirations-job] Blocked end user ${endUser.business_name} due to expired required document`);
 
           // Log the blocking action
           await supabase.from("audit_logs").insert({
@@ -199,7 +233,7 @@ serve(async (req: Request): Promise<Response> => {
       try {
         const bodyData = JSON.parse(notif.body || "{}");
         
-        // Call send-notification function
+        // Call send-notification function with service role auth
         const { error: emailError } = await supabase.functions.invoke("send-notification", {
           body: {
             type: "expiration_reminder",
@@ -208,6 +242,7 @@ serve(async (req: Request): Promise<Response> => {
             provider_name: bodyData.provider_name,
             document_name: bodyData.document_name,
             days_until_expiry: bodyData.days_until_expiry,
+            notification_id: notif.id,
           },
         });
 
@@ -220,23 +255,16 @@ serve(async (req: Request): Promise<Response> => {
             })
             .eq("id", notif.id);
         } else {
-          await supabase
-            .from("notifications_queue")
-            .update({ 
-              status: "sent", 
-              sent_at: new Date().toISOString() 
-            })
-            .eq("id", notif.id);
           emailsSent++;
         }
       } catch (err) {
-        console.error(`Error sending notification ${notif.id}:`, err);
+        console.error(`[daily-expirations-job] Error sending notification ${notif.id}:`, err);
       }
     }
 
     const duration = Date.now() - startTime;
-    console.log(`Daily expirations job completed in ${duration}ms`);
-    console.log(`Stats: ${JSON.stringify({ ...stats, emails_sent: emailsSent })}`);
+    console.log(`[daily-expirations-job] Completed in ${duration}ms`);
+    console.log(`[daily-expirations-job] Stats: ${JSON.stringify({ ...stats, emails_sent: emailsSent })}`);
 
     return new Response(
       JSON.stringify({
@@ -247,7 +275,7 @@ serve(async (req: Request): Promise<Response> => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in daily-expirations-job:", error);
+    console.error("[daily-expirations-job] Error:", error);
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -35,6 +35,39 @@ function extractEmail(input: string): string | null {
   return trimmed;
 }
 
+// === RATE LIMITING ===
+// In-memory rate limiter (resets on cold start, but provides basic protection)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT = 5; // Max 5 requests per minute per IP
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  
+  if (!entry || now > entry.resetTime) {
+    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return false;
+  }
+  
+  if (entry.count >= RATE_LIMIT) {
+    return true;
+  }
+  
+  entry.count++;
+  return false;
+}
+
+// Basic input sanitization
+function sanitizeInput(input: string): string {
+  if (!input || typeof input !== "string") return "";
+  // Remove potential script tags and limit length
+  return input
+    .replace(/<[^>]*>/g, "")
+    .trim()
+    .slice(0, 500);
+}
+
 serve(async (req: Request): Promise<Response> => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -42,15 +75,24 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
+    // === RATE LIMITING ===
+    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() 
+      || req.headers.get("cf-connecting-ip") 
+      || "unknown";
+    
+    if (isRateLimited(clientIp)) {
+      console.log(`[send-demo-email] Rate limit exceeded for IP: ${clientIp.slice(0, 8)}...`);
+      return new Response(
+        JSON.stringify({ error: "Too many requests. Please try again later." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     const DEMO_NOTIFY_TO_EMAIL = Deno.env.get("DEMO_NOTIFY_TO_EMAIL");
     const APP_PUBLIC_URL = Deno.env.get("APP_PUBLIC_URL") || "https://preuvio.com";
 
-    console.log("[send-demo-email] Checking environment variables...");
-    console.log("[send-demo-email] RESEND_API_KEY configured:", !!RESEND_API_KEY);
-    console.log("[send-demo-email] DEMO_NOTIFY_TO_EMAIL configured:", !!DEMO_NOTIFY_TO_EMAIL);
-    console.log("[send-demo-email] DEMO_NOTIFY_TO_EMAIL type:", typeof DEMO_NOTIFY_TO_EMAIL);
-    console.log("[send-demo-email] DEMO_NOTIFY_TO_EMAIL length:", DEMO_NOTIFY_TO_EMAIL?.length || 0);
+    console.log("[send-demo-email] Processing request...");
 
     if (!RESEND_API_KEY) {
       console.error("[send-demo-email] RESEND_API_KEY is not configured");
@@ -70,28 +112,44 @@ serve(async (req: Request): Promise<Response> => {
 
     // Validate the recipient email format
     const recipientEmail = extractEmail(DEMO_NOTIFY_TO_EMAIL);
-    console.log("[send-demo-email] Extracted recipient email valid:", isValidEmail(recipientEmail || ""));
     
     if (!recipientEmail || !isValidEmail(recipientEmail)) {
-      console.error("[send-demo-email] Invalid DEMO_NOTIFY_TO_EMAIL format. Must be 'email@example.com' or 'Name <email@example.com>'");
+      console.error("[send-demo-email] Invalid DEMO_NOTIFY_TO_EMAIL format");
       return new Response(
-        JSON.stringify({ 
-          error: "Invalid recipient email configuration",
-          hint: "DEMO_NOTIFY_TO_EMAIL must be 'email@example.com' or 'Name <email@example.com>'"
-        }),
+        JSON.stringify({ error: "Invalid recipient email configuration" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const body: DemoEmailRequest = await req.json();
-    const { name, email, company, vertical, volume } = body;
+    
+    // Sanitize and validate inputs
+    const name = sanitizeInput(body.name);
+    const email = body.email?.trim().toLowerCase();
+    const company = sanitizeInput(body.company);
+    const vertical = sanitizeInput(body.vertical);
+    const volume = sanitizeInput(body.volume);
 
-    console.log(`[send-demo-email] Received demo request from ${name} (${email}) at ${company}`);
+    console.log(`[send-demo-email] Demo request from company: ${company.slice(0, 20)}...`);
 
     // Validate required fields
-    if (!name || !email || !company) {
+    if (!name || name.length < 2) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
+        JSON.stringify({ error: "Name is required (min 2 characters)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!email || !isValidEmail(email)) {
+      return new Response(
+        JSON.stringify({ error: "Valid email is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!company || company.length < 2) {
+      return new Response(
+        JSON.stringify({ error: "Company is required (min 2 characters)" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -115,9 +173,8 @@ serve(async (req: Request): Promise<Response> => {
       "plus-5000": "Plus de 5 000",
     };
 
-    // Determine "from" email - use verified domain if available, fallback to onboarding@resend.dev
+    // Determine "from" email - use verified domain if available
     const fromEmail = "Preuvio <onboarding@resend.dev>";
-    // After domain verification: "Preuvio <noreply@mail.preuvio.com>"
 
     const htmlContent = `
 <!DOCTYPE html>
@@ -157,11 +214,11 @@ serve(async (req: Request): Promise<Response> => {
       </div>
       <div class="info-row">
         <span class="info-label">📊 Secteur</span>
-        <span class="info-value">${verticalNames[vertical] || vertical}</span>
+        <span class="info-value">${verticalNames[vertical] || vertical || "Non spécifié"}</span>
       </div>
       <div class="info-row">
         <span class="info-label">📈 Volume mensuel</span>
-        <span class="info-value">${volumeNames[volume] || volume}</span>
+        <span class="info-value">${volumeNames[volume] || volume || "Non spécifié"}</span>
       </div>
       
       <p style="margin-top: 24px; color: #6b7280;">
@@ -189,7 +246,7 @@ serve(async (req: Request): Promise<Response> => {
       },
       body: JSON.stringify({
         from: fromEmail,
-        to: [DEMO_NOTIFY_TO_EMAIL],
+        to: [recipientEmail],
         reply_to: email,
         subject: `🎯 Nouvelle demande de démo - ${company}`,
         html: htmlContent,
@@ -201,8 +258,8 @@ serve(async (req: Request): Promise<Response> => {
     if (!resendResponse.ok) {
       console.error("[send-demo-email] Resend API error:", resendData);
       return new Response(
-        JSON.stringify({ error: resendData.message || "Failed to send email" }),
-        { status: resendResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Failed to send email" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -218,7 +275,7 @@ serve(async (req: Request): Promise<Response> => {
   } catch (error) {
     console.error("[send-demo-email] Error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: "An error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

@@ -26,6 +26,13 @@ interface SendNotificationRequest {
   from_email?: string;
 }
 
+// Simple email validation
+function isValidEmail(email: string): boolean {
+  if (!email || typeof email !== "string") return false;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email.trim());
+}
+
 const getEmailContent = (params: SendNotificationRequest) => {
   const { type, platform_name, provider_name, document_name, days_until_expiry, magic_link_url, rejection_reason, documents_submitted } = params;
   
@@ -212,12 +219,66 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    // === AUTHENTICATION CHECK ===
+    // This function should only be called by:
+    // 1. Internal service calls (from other edge functions using service role)
+    // 2. Authenticated users with platform access
+    const authHeader = req.headers.get("Authorization");
+    
+    if (!authHeader?.startsWith("Bearer ")) {
+      console.error("[send-notification] Missing Authorization header");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    
+    // Check if this is a service role call (internal)
+    const isServiceRole = token === supabaseServiceKey;
+    
+    if (!isServiceRole) {
+      // Validate as user JWT
+      const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } }
+      });
+
+      const { data: userData, error: userError } = await supabaseAuth.auth.getUser();
+      
+      if (userError || !userData?.user) {
+        console.error("[send-notification] JWT validation failed:", userError);
+        return new Response(
+          JSON.stringify({ error: "Unauthorized - Invalid token" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      console.log(`[send-notification] Authenticated user: ${userData.user.id}`);
+    } else {
+      console.log("[send-notification] Service role authentication");
+    }
+
+    // === PROCESS REQUEST ===
     const body: SendNotificationRequest = await req.json();
     
     if (!body.to_email) {
-      console.error("Missing to_email in request");
+      console.error("[send-notification] Missing to_email in request");
       return new Response(
         JSON.stringify({ error: "Missing to_email" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate email format
+    if (!isValidEmail(body.to_email)) {
+      console.error("[send-notification] Invalid to_email format");
+      return new Response(
+        JSON.stringify({ error: "Invalid email format" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -226,7 +287,7 @@ serve(async (req: Request): Promise<Response> => {
     const fromEmail = body.from_email || DEFAULT_FROM_EMAIL;
     const fromName = body.platform_name || "TrustLayer";
 
-    console.log(`Sending ${body.type} email to ${body.to_email} from ${fromName} <${fromEmail}>`);
+    console.log(`[send-notification] Sending ${body.type} email to ${body.to_email} from ${fromName}`);
 
     const { data, error } = await resend.emails.send({
       from: `${fromName} <${fromEmail}>`,
@@ -236,12 +297,10 @@ serve(async (req: Request): Promise<Response> => {
     });
 
     if (error) {
-      console.error("Resend error:", error);
+      console.error("[send-notification] Resend error:", error);
       
       // Update notification status if notification_id provided
       if (body.notification_id) {
-        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
         
         await supabase
@@ -249,7 +308,6 @@ serve(async (req: Request): Promise<Response> => {
           .update({ 
             status: "failed", 
             error_message: error.message,
-            last_attempt_at: new Date().toISOString()
           })
           .eq("id", body.notification_id);
       }
@@ -260,12 +318,10 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log(`Email sent successfully to ${body.to_email}: ${body.type} (id: ${data?.id})`);
+    console.log(`[send-notification] Email sent successfully: ${body.type} (id: ${data?.id})`);
 
     // Update notification status if notification_id provided
     if (body.notification_id) {
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
       
       await supabase
@@ -273,8 +329,6 @@ serve(async (req: Request): Promise<Response> => {
         .update({ 
           status: "sent", 
           sent_at: new Date().toISOString(),
-          resend_message_id: data?.id,
-          last_attempt_at: new Date().toISOString()
         })
         .eq("id", body.notification_id);
     }
@@ -284,7 +338,7 @@ serve(async (req: Request): Promise<Response> => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in send-notification:", error);
+    console.error("[send-notification] Error:", error);
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
