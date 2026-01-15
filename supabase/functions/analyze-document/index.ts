@@ -28,7 +28,39 @@ serve(async (req: Request): Promise<Response> => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+    // === AUTHENTICATION CHECK ===
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      console.error("[analyze-document] Missing or invalid Authorization header");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create client with user's token to validate JWT
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: userData, error: userError } = await supabaseAuth.auth.getUser();
+    
+    if (userError || !userData?.user) {
+      console.error("[analyze-document] JWT validation failed:", userError);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized - Invalid token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = userData.user.id;
+    console.log(`[analyze-document] Authenticated user: ${userId}`);
+
+    // === SERVICE CLIENT FOR DB OPERATIONS ===
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     if (!LOVABLE_API_KEY) {
       console.error("[analyze-document] LOVABLE_API_KEY is not configured");
@@ -37,8 +69,6 @@ serve(async (req: Request): Promise<Response> => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body: AnalyzeDocumentRequest = await req.json();
     const { evidence_id } = body;
@@ -66,6 +96,20 @@ serve(async (req: Request): Promise<Response> => {
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // === AUTHORIZATION CHECK: Verify user has access to this platform ===
+    const { data: hasAccess } = await supabase
+      .rpc("has_platform_access", { _user_id: userId, _platform_id: evidence.platform_id });
+
+    if (!hasAccess) {
+      console.error(`[analyze-document] User ${userId} does not have access to platform ${evidence.platform_id}`);
+      return new Response(
+        JSON.stringify({ error: "Forbidden - No access to this platform" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`[analyze-document] User ${userId} authorized for platform ${evidence.platform_id}`);
 
     // Get signed URL for the file (5 min validity)
     const { data: signedUrlData, error: signedUrlError } = await supabase.storage
@@ -230,6 +274,7 @@ Règles:
     // Log the analysis
     await supabase.from("audit_logs").insert({
       platform_id: evidence.platform_id,
+      user_id: userId,
       action: "ai_analysis_completed",
       entity_type: "evidence",
       entity_id: evidence_id,
