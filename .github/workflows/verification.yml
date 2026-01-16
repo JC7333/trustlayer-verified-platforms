@@ -4,22 +4,18 @@ on:
   pull_request:
     branches: [ "main" ]
   push:
-    branches: [ "main", "lovable-dev" ]
-
-concurrency:
-  group: verification-${{ github.ref }}
-  cancel-in-progress: true
+    branches: [ "lovable-dev" ]
 
 jobs:
-  build:
-    name: Construire (npm run build)
+  verifier:
+    name: Lint + Build
     runs-on: ubuntu-latest
 
     steps:
       - name: Récupérer le code
         uses: actions/checkout@v4
 
-      - name: Installer Node.js
+      - name: Installer Node
         uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -28,5 +24,8 @@ jobs:
       - name: Installer les dépendances
         run: npm ci
 
-      - name: Construire
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
         run: npm run build
