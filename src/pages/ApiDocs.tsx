@@ -72,7 +72,7 @@ const codeExample = `// Créer une demande de vérification
 const response = await fetch('https://api.trustlayer.io/v1/verification-requests', {
   method: 'POST',
   headers: {
-    'Authorization': 'Bearer sk_live_...',
+    'Authorization': 'Bearer <API_KEY>',
     'Content-Type': 'application/json',
   },
   body: JSON.stringify({

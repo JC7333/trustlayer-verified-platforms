@@ -127,11 +127,44 @@ serve(async (req: Request): Promise<Response> => {
     const endUser = magicLink.end_user_profiles;
     const platform = endUser.platforms;
 
-    // Get the VTC rule pack items
+    // Get required documents for this platform's rule pack (dynamic)
+    const endUser = magicLink.end_user_profiles;
+    const platform = endUser.platforms;
+
+    // 1) Try: latest rule pack for this platform
+    const { data: platformPack } = await supabase
+      .from("rules_packages")
+      .select("id")
+      .eq("platform_id", platform.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // 2) Fallback: latest template pack
+    const { data: templatePack } = platformPack?.id
+      ? { data: null }
+      : await supabase
+          .from("rules_packages")
+          .select("id")
+          .eq("is_template", true)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+    const rulesPackageId = platformPack?.id || templatePack?.id;
+
+    if (!rulesPackageId) {
+      return new Response(
+        JSON.stringify({ error: "No rule pack configured for this platform" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Get rule pack items
     const { data: ruleItems } = await supabase
       .from("rules_items")
       .select("*")
-      .eq("package_id", "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+      .eq("package_id", rulesPackageId)
       .order("is_required", { ascending: false });
 
     // Get existing evidences for this end user
