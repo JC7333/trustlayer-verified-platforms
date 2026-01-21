@@ -128,9 +128,6 @@ serve(async (req: Request): Promise<Response> => {
     const endUser = magicLink.end_user_profiles;
     const platform = endUser.platforms;
 
-    // Get required documents for this platform's rule pack (dynamic)
-    const endUser = magicLink.end_user_profiles;
-    const platform = endUser.platforms;
 
     // 1) Try: latest rule pack for this platform
     const { data: platformPack } = await supabase
