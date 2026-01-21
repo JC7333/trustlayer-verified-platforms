@@ -37,14 +37,14 @@ const getEmailContent = (params: SendNotificationRequest) => {
   const { type, platform_name, provider_name, document_name, days_until_expiry, magic_link_url, rejection_reason, documents_submitted } = params;
   
   switch (type) {
-    case "expiration_reminder":
+    case "expiration_reminder": {
       const urgency = days_until_expiry === 0 ? "URGENT" : days_until_expiry === 1 ? "Important" : "Rappel";
       const expiryText = days_until_expiry === 0 
         ? "expire aujourd'hui" 
         : days_until_expiry === 1 
           ? "expire demain"
           : `expire dans ${days_until_expiry} jours`;
-      
+    }  
       return {
         subject: `[${urgency}] ${document_name} ${expiryText} - ${platform_name}`,
         html: `
@@ -172,7 +172,7 @@ const getEmailContent = (params: SendNotificationRequest) => {
         `,
       };
 
-    case "deposit_confirmation":
+    case "deposit_confirmation": {
       const docList = documents_submitted?.join(", ") || document_name || "vos documents";
       return {
         subject: `Confirmation de dépôt - ${platform_name}`,
@@ -207,7 +207,7 @@ const getEmailContent = (params: SendNotificationRequest) => {
           </div>
         `,
       };
-
+    }
     default:
       return { subject: "Notification", html: "<p>Notification</p>" };
   }

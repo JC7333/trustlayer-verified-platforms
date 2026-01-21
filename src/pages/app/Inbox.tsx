@@ -57,7 +57,7 @@ interface EvidenceWithProfile {
   created_at: string;
   rejection_reason: string | null;
   extraction_confidence: number | null;
-  ai_analysis: any;
+  ai_analysis: unknown;
   profile_id: string;
   platform_id: string;
   end_user_profiles: {

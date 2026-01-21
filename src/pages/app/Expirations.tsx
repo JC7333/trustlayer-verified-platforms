@@ -159,12 +159,13 @@ export default function Expirations() {
       });
 
       toast.success("Relance envoyée");
-    } catch (err: any) {
-      if (import.meta.env.DEV) console.error("Error sending reminder:", err);
-      toast.error("Erreur: " + (err.message || "Échec de l'envoi"));
-    } finally {
-      setSendingReminder(null);
-    }
+    } catch (err: unknown) {
+  if (import.meta.env.DEV) console.error("Error sending reminder:", err);
+  const message = err instanceof Error ? err.message : "Échec de l'envoi";
+  toast.error("Erreur: " + message);
+} finally {
+  setSendingReminder(null);
+}
   };
 
   const runDailyJob = async () => {
@@ -176,12 +177,13 @@ export default function Expirations() {
       
       toast.success(`Job exécuté: ${data?.notifications_created || 0} notifications créées`);
       fetchExpiringEvidences();
-    } catch (err: any) {
-      if (import.meta.env.DEV) console.error("Error running job:", err);
-      toast.error("Erreur: " + (err.message || "Échec du job"));
-    } finally {
-      setRunningJob(false);
-    }
+    } catch (err: unknown) {
+  if (import.meta.env.DEV) console.error("Error running job:", err);
+  const message = err instanceof Error ? err.message : "Échec du job";
+  toast.error("Erreur: " + message);
+} finally {
+  setRunningJob(false);
+}
   };
 
   const getExpiryBadge = (days: number) => {

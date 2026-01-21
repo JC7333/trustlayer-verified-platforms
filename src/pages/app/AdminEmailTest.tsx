@@ -49,7 +49,8 @@ export default function AdminEmailTest() {
         type: "Demo Email",
       });
       toast.success("Email de test envoyé avec succès !");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erreur inconnue";
       addResult({
         success: false,
         message: err.message || "Erreur inconnue",
@@ -87,14 +88,15 @@ export default function AdminEmailTest() {
         type: `Notification: ${type}`,
       });
       toast.success("Notification envoyée !");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erreur inconnue";
       addResult({
         success: false,
-        message: err.message || "Erreur inconnue",
+        message: message || "Erreur inconnue",
         timestamp: new Date(),
         type: `Notification: ${type}`,
       });
-      toast.error("Erreur: " + (err.message || "Échec de l'envoi"));
+      toast.error("Erreur: " + message)
     } finally {
       setLoading(false);
     }
