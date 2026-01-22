@@ -258,3 +258,11 @@ serve(async (req: Request): Promise<Response> => {
     );
   }
 });
+
+// avant de calculer tokenHash
+if (!token || !/^[a-f0-9]{64}$/i.test(token)) {
+  return new Response(JSON.stringify({ valid: false, error: "Invalid token format" }), {
+    status: 400,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}

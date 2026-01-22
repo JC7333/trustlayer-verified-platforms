@@ -162,14 +162,16 @@ export default function Review() {
       if (error) throw error;
 
       // Log action
-      await supabase.from("audit_logs").insert({
-        platform_id: selectedEvidence.platform_id,
-        user_id: user.id,
-        action: "evidence_approved",
-        entity_type: "evidence",
-        entity_id: selectedEvidence.id,
-        new_data: { document_type: selectedEvidence.document_type },
-      });
+      await supabase.functions.invoke("log-audit", {
+  body: {
+    platform_id,
+    action: "evidence_approved",
+    entity_type: "evidence",
+    entity_id: evidenceId,
+    old_data: null,
+    new_data: { status: "approved" },
+  },
+});
 
       // Check if all required docs are approved -> update end_user status
       await checkAndUpdateEndUserStatus(selectedEvidence.profile_id);
@@ -208,17 +210,16 @@ export default function Review() {
       if (error) throw error;
 
       // Log action
-      await supabase.from("audit_logs").insert({
-        platform_id: selectedEvidence.platform_id,
-        user_id: user.id,
-        action: "evidence_rejected",
-        entity_type: "evidence",
-        entity_id: selectedEvidence.id,
-        new_data: { 
-          document_type: selectedEvidence.document_type,
-          reason: fullReason,
-        },
-      });
+      await supabase.functions.invoke("log-audit", {
+  body: {
+    platform_id,
+    action: "evidence_approved",
+    entity_type: "evidence",
+    entity_id: evidenceId,
+    old_data: null,
+    new_data: { status: "approved" },
+  },
+});
 
       // Update end_user status to needs_docs
       await supabase
