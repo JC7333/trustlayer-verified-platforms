@@ -166,16 +166,16 @@ export default function Inbox() {
 
       if (error) throw error;
 
-      // Log action
-      await supabase.from("audit_logs").insert({
-        platform_id: selectedEvidence.platform_id,
-        user_id: user.id,
-        action: "evidence_approved",
-        entity_type: "evidence",
-        entity_id: selectedEvidence.id,
-        new_data: { 
-          document_type: selectedEvidence.document_type,
-          business_name: selectedEvidence.end_user_profiles.business_name,
+      await supabase.functions.invoke("log-audit", {
+        body: {
+          platform_id: selectedEvidence.platform_id,
+          action: "evidence_approved",
+          entity_type: "evidence",
+          entity_id: selectedEvidence.id,
+          new_data: {
+            document_type: selectedEvidence.document_type,
+            business_name: selectedEvidence.end_user_profiles.business_name,
+          },
         },
       });
 
@@ -217,17 +217,18 @@ export default function Inbox() {
       if (error) throw error;
 
       // Log action
-      await supabase.from("audit_logs").insert({
-        platform_id: selectedEvidence.platform_id,
-        user_id: user.id,
-        action: "evidence_rejected",
-        entity_type: "evidence",
-        entity_id: selectedEvidence.id,
-        new_data: { 
-          document_type: selectedEvidence.document_type,
-          reason: fullReason,
-          business_name: selectedEvidence.end_user_profiles.business_name,
-        },
+      await supabase.functions.invoke("log-audit", {
+        body: {
+          platform_id: selectedEvidence.platform_id,
+          user_id: user.id,
+          action: "evidence_rejected",
+          entity_type: "evidence",
+          entity_id: selectedEvidence.id,
+          new_data: { 
+            document_type: selectedEvidence.document_type,
+            reason: fullReason,
+            business_name: selectedEvidence.end_user_profiles.business_name,
+          },
       });
 
       // Update provider status
