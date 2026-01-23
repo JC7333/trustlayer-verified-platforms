@@ -4,8 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePlatform } from "@/hooks/usePlatform";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Search, 
+import {
+  Search,
   Filter,
   CheckCircle2,
   XCircle,
@@ -17,7 +17,7 @@ import {
   Calendar,
   Download,
   X,
-  MessageSquare
+  MessageSquare,
 } from "lucide-react";
 import {
   Dialog,
@@ -80,7 +80,9 @@ export default function Review() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("pending");
-  const [selectedEvidence, setSelectedEvidence] = useState<Evidence | null>(null);
+  const [selectedEvidence, setSelectedEvidence] = useState<Evidence | null>(
+    null,
+  );
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [rejectionComment, setRejectionComment] = useState("");
@@ -101,10 +103,12 @@ export default function Review() {
     try {
       let query = supabase
         .from("evidences")
-        .select(`
+        .select(
+          `
           *,
           end_user_profiles!inner(id, business_name, contact_email)
-        `)
+        `,
+        )
         .eq("platform_id", currentPlatform.id)
         .order("created_at", { ascending: false });
 
@@ -163,15 +167,15 @@ export default function Review() {
 
       // Log action
       await supabase.functions.invoke("log-audit", {
-  body: {
-    platform_id,
-    action: "evidence_approved",
-    entity_type: "evidence",
-    entity_id: evidenceId,
-    old_data: null,
-    new_data: { status: "approved" },
-  },
-});
+        body: {
+          platform_id,
+          action: "evidence_approved",
+          entity_type: "evidence",
+          entity_id: evidenceId,
+          old_data: null,
+          new_data: { status: "approved" },
+        },
+      });
 
       // Check if all required docs are approved -> update end_user status
       await checkAndUpdateEndUserStatus(selectedEvidence.profile_id);
@@ -192,8 +196,8 @@ export default function Review() {
 
     setProcessing(true);
     try {
-      const fullReason = rejectionComment 
-        ? `${rejectionReason}: ${rejectionComment}` 
+      const fullReason = rejectionComment
+        ? `${rejectionReason}: ${rejectionComment}`
         : rejectionReason;
 
       const { error } = await supabase
@@ -211,15 +215,15 @@ export default function Review() {
 
       // Log action
       await supabase.functions.invoke("log-audit", {
-  body: {
-    platform_id,
-    action: "evidence_approved",
-    entity_type: "evidence",
-    entity_id: evidenceId,
-    old_data: null,
-    new_data: { status: "approved" },
-  },
-});
+        body: {
+          platform_id,
+          action: "evidence_approved",
+          entity_type: "evidence",
+          entity_id: evidenceId,
+          old_data: null,
+          new_data: { status: "approved" },
+        },
+      });
 
       // Update end_user status to needs_docs
       await supabase
@@ -250,8 +254,9 @@ export default function Review() {
 
     if (!allEvidences) return;
 
-    const allApproved = allEvidences.length > 0 && 
-      allEvidences.every(e => e.review_status === "approved");
+    const allApproved =
+      allEvidences.length > 0 &&
+      allEvidences.every((e) => e.review_status === "approved");
 
     if (allApproved) {
       await supabase
@@ -263,7 +268,7 @@ export default function Review() {
 
   const handleExport = async () => {
     if (!currentPlatform) return;
-    
+
     setExporting(true);
     try {
       const { data, error } = await supabase.functions.invoke("export-audit", {
@@ -292,12 +297,17 @@ export default function Review() {
     }
   };
 
-  const filteredEvidences = evidences.filter(e =>
-    e.end_user_profiles.business_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    e.document_name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredEvidences = evidences.filter(
+    (e) =>
+      e.end_user_profiles.business_name
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      e.document_name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const pendingCount = evidences.filter(e => e.review_status === "pending").length;
+  const pendingCount = evidences.filter(
+    (e) => e.review_status === "pending",
+  ).length;
 
   if (platformLoading || loading) {
     return (
@@ -314,9 +324,12 @@ export default function Review() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Console de revue</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            Console de revue
+          </h1>
           <p className="text-muted-foreground">
-            {pendingCount} document{pendingCount !== 1 ? "s" : ""} en attente de vérification
+            {pendingCount} document{pendingCount !== 1 ? "s" : ""} en attente de
+            vérification
           </p>
         </div>
 
@@ -337,16 +350,14 @@ export default function Review() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {statusFilters.map(f => (
-                <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+              {statusFilters.map((f) => (
+                <SelectItem key={f.value} value={f.value}>
+                  {f.label}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Button 
-            variant="outline" 
-            onClick={handleExport}
-            disabled={exporting}
-          >
+          <Button variant="outline" onClick={handleExport} disabled={exporting}>
             {exporting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
@@ -361,11 +372,13 @@ export default function Review() {
           <div className="text-center py-12 bg-card rounded-xl border border-border">
             <CheckCircle2 className="h-12 w-12 text-success mx-auto mb-4" />
             <h3 className="font-semibold text-foreground mb-2">
-              {statusFilter === "pending" ? "Aucun document en attente" : "Aucun document"}
+              {statusFilter === "pending"
+                ? "Aucun document en attente"
+                : "Aucun document"}
             </h3>
             <p className="text-muted-foreground text-sm">
-              {statusFilter === "pending" 
-                ? "Tous les documents ont été traités !" 
+              {statusFilter === "pending"
+                ? "Tous les documents ont été traités !"
                 : "Modifiez vos filtres pour voir d'autres résultats"}
             </p>
           </div>
@@ -378,28 +391,37 @@ export default function Review() {
                 onClick={() => openEvidence(evidence)}
               >
                 <div className="flex items-start gap-4">
-                  <div className={`h-12 w-12 rounded-lg flex items-center justify-center shrink-0 ${
-                    evidence.review_status === "approved" 
-                      ? "bg-success/10 text-success"
-                      : evidence.review_status === "rejected"
-                      ? "bg-destructive/10 text-destructive"
-                      : "bg-warning/10 text-warning"
-                  }`}>
+                  <div
+                    className={`h-12 w-12 rounded-lg flex items-center justify-center shrink-0 ${
+                      evidence.review_status === "approved"
+                        ? "bg-success/10 text-success"
+                        : evidence.review_status === "rejected"
+                          ? "bg-destructive/10 text-destructive"
+                          : "bg-warning/10 text-warning"
+                    }`}
+                  >
                     <FileText className="h-6 w-6" />
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-medium text-foreground">{evidence.document_name}</h3>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        evidence.review_status === "approved" 
-                          ? "bg-success/10 text-success"
+                      <h3 className="font-medium text-foreground">
+                        {evidence.document_name}
+                      </h3>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          evidence.review_status === "approved"
+                            ? "bg-success/10 text-success"
+                            : evidence.review_status === "rejected"
+                              ? "bg-destructive/10 text-destructive"
+                              : "bg-warning/10 text-warning"
+                        }`}
+                      >
+                        {evidence.review_status === "approved"
+                          ? "Validé"
                           : evidence.review_status === "rejected"
-                          ? "bg-destructive/10 text-destructive"
-                          : "bg-warning/10 text-warning"
-                      }`}>
-                        {evidence.review_status === "approved" ? "Validé" : 
-                         evidence.review_status === "rejected" ? "Rejeté" : "À traiter"}
+                            ? "Rejeté"
+                            : "À traiter"}
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground mb-2">
@@ -408,14 +430,23 @@ export default function Review() {
                     <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        {new Date(evidence.created_at).toLocaleDateString("fr-FR")}
+                        {new Date(evidence.created_at).toLocaleDateString(
+                          "fr-FR",
+                        )}
                       </span>
                       {evidence.expires_at && (
-                        <span className={`flex items-center gap-1 ${
-                          new Date(evidence.expires_at) < new Date() ? "text-destructive" : ""
-                        }`}>
+                        <span
+                          className={`flex items-center gap-1 ${
+                            new Date(evidence.expires_at) < new Date()
+                              ? "text-destructive"
+                              : ""
+                          }`}
+                        >
                           <Calendar className="h-3 w-3" />
-                          Expire: {new Date(evidence.expires_at).toLocaleDateString("fr-FR")}
+                          Expire:{" "}
+                          {new Date(evidence.expires_at).toLocaleDateString(
+                            "fr-FR",
+                          )}
                         </span>
                       )}
                     </div>
@@ -432,7 +463,10 @@ export default function Review() {
       </div>
 
       {/* Evidence Preview Modal */}
-      <Dialog open={!!selectedEvidence} onOpenChange={() => setSelectedEvidence(null)}>
+      <Dialog
+        open={!!selectedEvidence}
+        onOpenChange={() => setSelectedEvidence(null)}
+      >
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
@@ -453,9 +487,9 @@ export default function Review() {
             ) : signedUrl ? (
               <div className="bg-secondary rounded-lg p-2">
                 {selectedEvidence?.mime_type?.startsWith("image/") ? (
-                  <img 
-                    src={signedUrl} 
-                    alt={selectedEvidence?.document_name} 
+                  <img
+                    src={signedUrl}
+                    alt={selectedEvidence?.document_name}
                     className="max-w-full h-auto mx-auto rounded"
                   />
                 ) : (
@@ -475,31 +509,41 @@ export default function Review() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm mb-4">
                 <div>
                   <p className="text-muted-foreground">Type</p>
-                  <p className="font-medium text-foreground">{selectedEvidence.document_type}</p>
+                  <p className="font-medium text-foreground">
+                    {selectedEvidence.document_type}
+                  </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Soumis le</p>
                   <p className="font-medium text-foreground">
-                    {new Date(selectedEvidence.created_at).toLocaleDateString("fr-FR")}
+                    {new Date(selectedEvidence.created_at).toLocaleDateString(
+                      "fr-FR",
+                    )}
                   </p>
                 </div>
                 {selectedEvidence.issued_at && (
                   <div>
                     <p className="text-muted-foreground">Date d'émission</p>
                     <p className="font-medium text-foreground">
-                      {new Date(selectedEvidence.issued_at).toLocaleDateString("fr-FR")}
+                      {new Date(selectedEvidence.issued_at).toLocaleDateString(
+                        "fr-FR",
+                      )}
                     </p>
                   </div>
                 )}
                 {selectedEvidence.expires_at && (
                   <div>
                     <p className="text-muted-foreground">Expire le</p>
-                    <p className={`font-medium ${
-                      new Date(selectedEvidence.expires_at) < new Date() 
-                        ? "text-destructive" 
-                        : "text-foreground"
-                    }`}>
-                      {new Date(selectedEvidence.expires_at).toLocaleDateString("fr-FR")}
+                    <p
+                      className={`font-medium ${
+                        new Date(selectedEvidence.expires_at) < new Date()
+                          ? "text-destructive"
+                          : "text-foreground"
+                      }`}
+                    >
+                      {new Date(selectedEvidence.expires_at).toLocaleDateString(
+                        "fr-FR",
+                      )}
                     </p>
                   </div>
                 )}
@@ -507,16 +551,20 @@ export default function Review() {
 
               {selectedEvidence.rejection_reason && (
                 <div className="p-3 bg-destructive/10 rounded-lg mb-4">
-                  <p className="text-sm text-destructive font-medium">Motif de rejet :</p>
-                  <p className="text-sm text-destructive">{selectedEvidence.rejection_reason}</p>
+                  <p className="text-sm text-destructive font-medium">
+                    Motif de rejet :
+                  </p>
+                  <p className="text-sm text-destructive">
+                    {selectedEvidence.rejection_reason}
+                  </p>
                 </div>
               )}
 
               {/* Actions */}
               {selectedEvidence.review_status === "pending" && (
                 <div className="flex gap-3">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="flex-1"
                     onClick={() => setShowRejectModal(true)}
                     disabled={processing}
@@ -524,7 +572,7 @@ export default function Review() {
                     <XCircle className="h-4 w-4 text-destructive" />
                     Rejeter
                   </Button>
-                  <Button 
+                  <Button
                     className="flex-1 bg-success hover:bg-success/90"
                     onClick={handleApprove}
                     disabled={processing}
@@ -541,9 +589,9 @@ export default function Review() {
 
               {signedUrl && (
                 <div className="mt-3">
-                  <a 
-                    href={signedUrl} 
-                    target="_blank" 
+                  <a
+                    href={signedUrl}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-primary hover:underline flex items-center gap-1"
                   >
@@ -568,13 +616,18 @@ export default function Review() {
               <label className="block text-sm font-medium text-foreground mb-2">
                 Motif du rejet *
               </label>
-              <Select value={rejectionReason} onValueChange={setRejectionReason}>
+              <Select
+                value={rejectionReason}
+                onValueChange={setRejectionReason}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner un motif" />
                 </SelectTrigger>
                 <SelectContent>
-                  {rejectionReasons.map(r => (
-                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  {rejectionReasons.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {r}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -591,14 +644,14 @@ export default function Review() {
               />
             </div>
             <div className="flex gap-3">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="flex-1"
                 onClick={() => setShowRejectModal(false)}
               >
                 Annuler
               </Button>
-              <Button 
+              <Button
                 variant="destructive"
                 className="flex-1"
                 onClick={handleReject}

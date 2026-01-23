@@ -45,7 +45,7 @@ export function usePlatform() {
 
         if (roles && roles.length > 0) {
           const platformIds = roles.map((r) => r.platform_id);
-          
+
           const { data: platformsData, error: platformsError } = await supabase
             .from("platforms")
             .select("*")
@@ -58,7 +58,9 @@ export function usePlatform() {
             // Set first platform as current
             if (platformsData.length > 0) {
               setCurrentPlatform(platformsData[0]);
-              const role = roles.find((r) => r.platform_id === platformsData[0].id);
+              const role = roles.find(
+                (r) => r.platform_id === platformsData[0].id,
+              );
               if (role) {
                 setUserRole({
                   platform_id: role.platform_id,
@@ -90,7 +92,12 @@ export function usePlatform() {
 
   const hasRole = (requiredRole: UserRole["role"]) => {
     if (!userRole) return false;
-    const roleHierarchy = ["viewer", "reviewer", "platform_admin", "platform_owner"];
+    const roleHierarchy = [
+      "viewer",
+      "reviewer",
+      "platform_admin",
+      "platform_owner",
+    ];
     const userRoleIndex = roleHierarchy.indexOf(userRole.role);
     const requiredRoleIndex = roleHierarchy.indexOf(requiredRole);
     return userRoleIndex >= requiredRoleIndex;

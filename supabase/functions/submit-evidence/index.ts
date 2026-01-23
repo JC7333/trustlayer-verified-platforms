@@ -4,7 +4,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 // Rate limiter
@@ -15,16 +16,16 @@ const RATE_WINDOW = 60000;
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
   const entry = rateLimitMap.get(ip);
-  
+
   if (!entry || now > entry.resetAt) {
     rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW });
     return false;
   }
-  
+
   if (entry.count >= RATE_LIMIT) {
     return true;
   }
-  
+
   entry.count++;
   return false;
 }
@@ -45,12 +46,13 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
+    const clientIp =
+      req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
     if (isRateLimited(clientIp)) {
-      return new Response(
-        JSON.stringify({ error: "Too many requests" }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Too many requests" }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -58,14 +60,22 @@ serve(async (req: Request): Promise<Response> => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body: SubmitEvidenceRequest = await req.json();
-    const { token, document_type, document_name, file_base64, mime_type, issued_at, expires_at } = body;
+    const {
+      token,
+      document_type,
+      document_name,
+      file_base64,
+      mime_type,
+      issued_at,
+      expires_at,
+    } = body;
 
     // Validate token
     if (!token || token.length !== 64) {
-      return new Response(
-        JSON.stringify({ error: "Invalid token" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Hash token
@@ -73,15 +83,19 @@ serve(async (req: Request): Promise<Response> => {
     const data = encoder.encode(token);
     const hashBuffer = await crypto.subtle.digest("SHA-256", data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const tokenHash = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+    const tokenHash = hashArray
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
 
     // Validate magic link
     const { data: magicLink, error: lookupError } = await supabase
       .from("magic_links")
-      .select(`
+      .select(
+        `
         *,
         end_user_profiles!inner(id, platform_id, status)
-      `)
+      `,
+      )
       .eq("token_hash", tokenHash)
       .is("revoked_at", null)
       .single();
@@ -89,15 +103,18 @@ serve(async (req: Request): Promise<Response> => {
     if (lookupError || !magicLink) {
       return new Response(
         JSON.stringify({ error: "Invalid or expired link" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     if (new Date(magicLink.expires_at) < new Date()) {
-      return new Response(
-        JSON.stringify({ error: "Link expired" }),
-        { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Link expired" }), {
+        status: 410,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const endUser = magicLink.end_user_profiles;
@@ -105,25 +122,41 @@ serve(async (req: Request): Promise<Response> => {
     const profileId = endUser.id;
 
     // Validate file size (max 10MB)
-    const fileBuffer = Uint8Array.from(atob(file_base64), c => c.charCodeAt(0));
+    const fileBuffer = Uint8Array.from(atob(file_base64), (c) =>
+      c.charCodeAt(0),
+    );
     if (fileBuffer.length > 10 * 1024 * 1024) {
       return new Response(
         JSON.stringify({ error: "File too large (max 10MB)" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     // Validate mime type
-    const allowedMimes = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+    const allowedMimes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "application/pdf",
+    ];
     if (!allowedMimes.includes(mime_type)) {
       return new Response(
-        JSON.stringify({ error: "Invalid file type. Allowed: JPEG, PNG, WebP, PDF" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: "Invalid file type. Allowed: JPEG, PNG, WebP, PDF",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     // Generate file path
-    const fileExt = mime_type.split("/")[1] === "pdf" ? "pdf" : mime_type.split("/")[1];
+    const fileExt =
+      mime_type.split("/")[1] === "pdf" ? "pdf" : mime_type.split("/")[1];
     const fileName = `${platformId}/${profileId}/${document_type}_${Date.now()}.${fileExt}`;
 
     // Upload to storage
@@ -136,10 +169,10 @@ serve(async (req: Request): Promise<Response> => {
 
     if (uploadError) {
       console.error("Upload error:", uploadError);
-      return new Response(
-        JSON.stringify({ error: "Failed to upload file" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Failed to upload file" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Create evidence record
@@ -166,7 +199,10 @@ serve(async (req: Request): Promise<Response> => {
       console.error("Insert error:", insertError);
       return new Response(
         JSON.stringify({ error: "Failed to save evidence" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -228,7 +264,7 @@ serve(async (req: Request): Promise<Response> => {
             document_name,
           },
         });
-        
+
         // Update notification status
         await supabase
           .from("notifications_queue")
@@ -248,21 +284,27 @@ serve(async (req: Request): Promise<Response> => {
         evidence_id: evidence.id,
         message: "Document uploaded successfully",
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   } catch (error) {
     console.error("Error in submit-evidence:", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
 
 // avant de calculer tokenHash
 if (!token || !/^[a-f0-9]{64}$/i.test(token)) {
-  return new Response(JSON.stringify({ valid: false, error: "Invalid token format" }), {
-    status: 400,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  return new Response(
+    JSON.stringify({ valid: false, error: "Invalid token format" }),
+    {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    },
+  );
 }

@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req: Request): Promise<Response> => {
@@ -21,26 +22,32 @@ serve(async (req: Request): Promise<Response> => {
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
     if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Invalid token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const { platform_id } = await req.json();
 
     if (!platform_id) {
-      return new Response(
-        JSON.stringify({ error: "Missing platform_id" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Missing platform_id" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Check user has access to this platform
@@ -50,10 +57,10 @@ serve(async (req: Request): Promise<Response> => {
     });
 
     if (!hasAccess) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Fetch all data for export
@@ -84,68 +91,86 @@ serve(async (req: Request): Promise<Response> => {
 
     // Build CSV content
     const csvLines: string[] = [];
-    
+
     // Header
     csvLines.push("=== EXPORT AUDIT TRUSTLAYER ===");
     csvLines.push(`Date d'export: ${new Date().toLocaleString("fr-FR")}`);
     csvLines.push(`Plateforme ID: ${platform_id}`);
     csvLines.push("");
-    
+
     // Prestataires section
     csvLines.push("=== PRESTATAIRES ===");
-    csvLines.push("Nom;Email;Téléphone;Statut;Date création;Dernière mise à jour");
-    
+    csvLines.push(
+      "Nom;Email;Téléphone;Statut;Date création;Dernière mise à jour",
+    );
+
     for (const user of endUsers || []) {
-      csvLines.push([
-        user.business_name || "",
-        user.contact_email || "",
-        user.contact_phone || "",
-        user.status || "",
-        new Date(user.created_at).toLocaleString("fr-FR"),
-        new Date(user.updated_at).toLocaleString("fr-FR"),
-      ].join(";"));
+      csvLines.push(
+        [
+          user.business_name || "",
+          user.contact_email || "",
+          user.contact_phone || "",
+          user.status || "",
+          new Date(user.created_at).toLocaleString("fr-FR"),
+          new Date(user.updated_at).toLocaleString("fr-FR"),
+        ].join(";"),
+      );
     }
-    
+
     csvLines.push("");
-    
+
     // Documents section
     csvLines.push("=== DOCUMENTS ===");
-    csvLines.push("Prestataire;Type document;Nom document;Statut revue;Date soumission;Date émission;Date expiration;Motif rejet");
-    
+    csvLines.push(
+      "Prestataire;Type document;Nom document;Statut revue;Date soumission;Date émission;Date expiration;Motif rejet",
+    );
+
     // Create a map of end user IDs to names
-    const userMap = new Map((endUsers || []).map(u => [u.id, u.business_name]));
-    
+    const userMap = new Map(
+      (endUsers || []).map((u) => [u.id, u.business_name]),
+    );
+
     for (const evidence of evidences || []) {
-      csvLines.push([
-        userMap.get(evidence.profile_id) || evidence.profile_id,
-        evidence.document_type || "",
-        evidence.document_name || "",
-        evidence.review_status || "",
-        new Date(evidence.created_at).toLocaleString("fr-FR"),
-        evidence.issued_at ? new Date(evidence.issued_at).toLocaleDateString("fr-FR") : "",
-        evidence.expires_at ? new Date(evidence.expires_at).toLocaleDateString("fr-FR") : "",
-        (evidence.rejection_reason || "").replace(/;/g, ","),
-      ].join(";"));
+      csvLines.push(
+        [
+          userMap.get(evidence.profile_id) || evidence.profile_id,
+          evidence.document_type || "",
+          evidence.document_name || "",
+          evidence.review_status || "",
+          new Date(evidence.created_at).toLocaleString("fr-FR"),
+          evidence.issued_at
+            ? new Date(evidence.issued_at).toLocaleDateString("fr-FR")
+            : "",
+          evidence.expires_at
+            ? new Date(evidence.expires_at).toLocaleDateString("fr-FR")
+            : "",
+          (evidence.rejection_reason || "").replace(/;/g, ","),
+        ].join(";"),
+      );
     }
-    
+
     csvLines.push("");
-    
+
     // Audit logs section
     csvLines.push("=== HISTORIQUE DECISIONS ===");
     csvLines.push("Date;Action;Type entité;ID entité;Données");
-    
+
     for (const log of auditLogs || []) {
-      csvLines.push([
-        new Date(log.created_at).toLocaleString("fr-FR"),
-        log.action || "",
-        log.entity_type || "",
-        log.entity_id || "",
-        JSON.stringify(log.new_data || {}).replace(/;/g, ",").substring(0, 200),
-      ].join(";"));
+      csvLines.push(
+        [
+          new Date(log.created_at).toLocaleString("fr-FR"),
+          log.action || "",
+          log.entity_type || "",
+          log.entity_id || "",
+          JSON.stringify(log.new_data || {})
+            .replace(/;/g, ",")
+            .substring(0, 200),
+        ].join(";"),
+      );
     }
 
     const csvContent = csvLines.join("\n");
-    
+
     // Log export action
     await supabase.from("audit_logs").insert({
       platform_id,
@@ -160,7 +185,9 @@ serve(async (req: Request): Promise<Response> => {
       },
     });
 
-    console.log(`Audit export generated for platform ${platform_id} by user ${user.id}`);
+    console.log(
+      `Audit export generated for platform ${platform_id} by user ${user.id}`,
+    );
 
     return new Response(csvContent, {
       status: 200,
@@ -172,9 +199,9 @@ serve(async (req: Request): Promise<Response> => {
     });
   } catch (error) {
     console.error("Error in export-audit:", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

@@ -3,15 +3,15 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlatform } from "@/hooks/usePlatform";
 import { Button } from "@/components/ui/button";
-import { 
-  AlertTriangle, 
-  Calendar, 
-  Clock, 
-  Loader2, 
+import {
+  AlertTriangle,
+  Calendar,
+  Clock,
+  Loader2,
   Send,
   CheckCircle2,
   FileText,
-  RefreshCw
+  RefreshCw,
 } from "lucide-react";
 import {
   Select,
@@ -66,7 +66,8 @@ export default function Expirations() {
       const now = new Date();
       let query = supabase
         .from("evidences")
-        .select(`
+        .select(
+          `
           id,
           document_name,
           document_type,
@@ -74,7 +75,8 @@ export default function Expirations() {
           status,
           profile_id,
           end_user_profiles!inner(id, business_name, contact_email)
-        `)
+        `,
+        )
         .eq("platform_id", currentPlatform.id)
         .eq("review_status", "approved")
         .not("expires_at", "is", null)
@@ -85,10 +87,14 @@ export default function Expirations() {
         query = query.lt("expires_at", now.toISOString());
       } else if (filter === "7days") {
         const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-        query = query.gte("expires_at", now.toISOString()).lte("expires_at", in7Days.toISOString());
+        query = query
+          .gte("expires_at", now.toISOString())
+          .lte("expires_at", in7Days.toISOString());
       } else if (filter === "30days") {
         const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-        query = query.gte("expires_at", now.toISOString()).lte("expires_at", in30Days.toISOString());
+        query = query
+          .gte("expires_at", now.toISOString())
+          .lte("expires_at", in30Days.toISOString());
       }
 
       const { data, error } = await query;
@@ -96,9 +102,11 @@ export default function Expirations() {
       if (error) throw error;
 
       // Calculate days until expiry
-      const enrichedData = (data || []).map(evidence => {
+      const enrichedData = (data || []).map((evidence) => {
         const expiryDate = new Date(evidence.expires_at);
-        const daysUntil = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        const daysUntil = Math.ceil(
+          (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+        );
         return {
           ...evidence,
           days_until_expiry: daysUntil,
@@ -107,7 +115,8 @@ export default function Expirations() {
 
       setEvidences(enrichedData as ExpiringEvidence[]);
     } catch (err) {
-      if (import.meta.env.DEV) console.error("Error fetching expirations:", err);
+      if (import.meta.env.DEV)
+        console.error("Error fetching expirations:", err);
       toast.error("Erreur lors du chargement");
     } finally {
       setLoading(false);
@@ -123,33 +132,40 @@ export default function Expirations() {
     setSendingReminder(evidence.id);
     try {
       // Create a magic link for the provider
-      const { data: magicLinkData, error: magicLinkError } = await supabase.functions.invoke("create-magic-link", {
-        body: {
-          platform_id: currentPlatform?.id,
-          end_user_id: evidence.profile_id,
-          expires_in_days: 7,
-        },
-      });
+      const { data: magicLinkData, error: magicLinkError } =
+        await supabase.functions.invoke("create-magic-link", {
+          body: {
+            platform_id: currentPlatform?.id,
+            end_user_id: evidence.profile_id,
+            expires_in_days: 7,
+          },
+        });
 
       if (magicLinkError) throw magicLinkError;
 
       // Queue notification
-      const { error: notifError } = await supabase.from("notifications_queue").insert({
-        platform_id: currentPlatform?.id,
-        end_user_id: evidence.profile_id,
-        evidence_id: evidence.id,
-        notification_type: evidence.days_until_expiry <= 0 ? "document_expired" : "expiry_reminder_manual",
-        recipient_email: evidence.end_user_profiles.contact_email,
-        subject: evidence.days_until_expiry <= 0 
-          ? `Document expiré - Action requise`
-          : `Votre document expire bientôt`,
-        body: `Votre document "${evidence.document_name}" ${evidence.days_until_expiry <= 0 ? 'a expiré' : `expire dans ${evidence.days_until_expiry} jours`}. Veuillez le renouveler.`,
-        metadata: {
-          magic_link: magicLinkData?.magic_link,
-          document_name: evidence.document_name,
-          days_until_expiry: evidence.days_until_expiry,
-        },
-      });
+      const { error: notifError } = await supabase
+        .from("notifications_queue")
+        .insert({
+          platform_id: currentPlatform?.id,
+          end_user_id: evidence.profile_id,
+          evidence_id: evidence.id,
+          notification_type:
+            evidence.days_until_expiry <= 0
+              ? "document_expired"
+              : "expiry_reminder_manual",
+          recipient_email: evidence.end_user_profiles.contact_email,
+          subject:
+            evidence.days_until_expiry <= 0
+              ? `Document expiré - Action requise`
+              : `Votre document expire bientôt`,
+          body: `Votre document "${evidence.document_name}" ${evidence.days_until_expiry <= 0 ? "a expiré" : `expire dans ${evidence.days_until_expiry} jours`}. Veuillez le renouveler.`,
+          metadata: {
+            magic_link: magicLinkData?.magic_link,
+            document_name: evidence.document_name,
+            days_until_expiry: evidence.days_until_expiry,
+          },
+        });
 
       if (notifError) throw notifError;
 
@@ -160,30 +176,34 @@ export default function Expirations() {
 
       toast.success("Relance envoyée");
     } catch (err: unknown) {
-  if (import.meta.env.DEV) console.error("Error sending reminder:", err);
-  const message = err instanceof Error ? err.message : "Échec de l'envoi";
-  toast.error("Erreur: " + message);
-} finally {
-  setSendingReminder(null);
-}
+      if (import.meta.env.DEV) console.error("Error sending reminder:", err);
+      const message = err instanceof Error ? err.message : "Échec de l'envoi";
+      toast.error("Erreur: " + message);
+    } finally {
+      setSendingReminder(null);
+    }
   };
 
   const runDailyJob = async () => {
     setRunningJob(true);
     try {
-      const { data, error } = await supabase.functions.invoke("daily-expirations-job");
-      
+      const { data, error } = await supabase.functions.invoke(
+        "daily-expirations-job",
+      );
+
       if (error) throw error;
-      
-      toast.success(`Job exécuté: ${data?.notifications_created || 0} notifications créées`);
+
+      toast.success(
+        `Job exécuté: ${data?.notifications_created || 0} notifications créées`,
+      );
       fetchExpiringEvidences();
     } catch (err: unknown) {
-  if (import.meta.env.DEV) console.error("Error running job:", err);
-  const message = err instanceof Error ? err.message : "Échec du job";
-  toast.error("Erreur: " + message);
-} finally {
-  setRunningJob(false);
-}
+      if (import.meta.env.DEV) console.error("Error running job:", err);
+      const message = err instanceof Error ? err.message : "Échec du job";
+      toast.error("Erreur: " + message);
+    } finally {
+      setRunningJob(false);
+    }
   };
 
   const getExpiryBadge = (days: number) => {
@@ -208,8 +228,10 @@ export default function Expirations() {
     );
   };
 
-  const expiredCount = evidences.filter(e => e.days_until_expiry <= 0).length;
-  const urgentCount = evidences.filter(e => e.days_until_expiry > 0 && e.days_until_expiry <= 7).length;
+  const expiredCount = evidences.filter((e) => e.days_until_expiry <= 0).length;
+  const urgentCount = evidences.filter(
+    (e) => e.days_until_expiry > 0 && e.days_until_expiry <= 7,
+  ).length;
 
   if (platformLoading || loading) {
     return (
@@ -230,13 +252,19 @@ export default function Expirations() {
             <h1 className="text-2xl font-bold text-foreground">Expirations</h1>
             <p className="text-muted-foreground">
               {expiredCount > 0 && (
-                <span className="text-destructive">{expiredCount} expiré{expiredCount > 1 ? 's' : ''}</span>
+                <span className="text-destructive">
+                  {expiredCount} expiré{expiredCount > 1 ? "s" : ""}
+                </span>
               )}
               {expiredCount > 0 && urgentCount > 0 && " · "}
               {urgentCount > 0 && (
-                <span className="text-warning">{urgentCount} urgent{urgentCount > 1 ? 's' : ''}</span>
+                <span className="text-warning">
+                  {urgentCount} urgent{urgentCount > 1 ? "s" : ""}
+                </span>
               )}
-              {expiredCount === 0 && urgentCount === 0 && "Aucun document urgent"}
+              {expiredCount === 0 &&
+                urgentCount === 0 &&
+                "Aucun document urgent"}
             </p>
           </div>
           <div className="flex gap-2">
@@ -245,13 +273,15 @@ export default function Expirations() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {filterOptions.map(f => (
-                  <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                {filterOptions.map((f) => (
+                  <SelectItem key={f.value} value={f.value}>
+                    {f.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={runDailyJob}
               disabled={runningJob}
             >
@@ -287,7 +317,11 @@ export default function Expirations() {
               <span className="text-sm font-medium">J-30</span>
             </div>
             <p className="text-2xl font-bold">
-              {evidences.filter(e => e.days_until_expiry > 7 && e.days_until_expiry <= 30).length}
+              {
+                evidences.filter(
+                  (e) => e.days_until_expiry > 7 && e.days_until_expiry <= 30,
+                ).length
+              }
             </p>
           </div>
           <div className="bg-card rounded-xl border border-border p-4">
@@ -303,7 +337,9 @@ export default function Expirations() {
         {evidences.length === 0 ? (
           <div className="text-center py-12 bg-card rounded-xl border border-border">
             <CheckCircle2 className="h-12 w-12 text-success mx-auto mb-4" />
-            <h3 className="font-semibold text-foreground mb-2">Aucune expiration</h3>
+            <h3 className="font-semibold text-foreground mb-2">
+              Aucune expiration
+            </h3>
             <p className="text-muted-foreground text-sm">
               Tous les documents sont à jour
             </p>
@@ -314,34 +350,41 @@ export default function Expirations() {
               <div
                 key={evidence.id}
                 className={`bg-card rounded-xl border p-4 ${
-                  evidence.days_until_expiry <= 0 
-                    ? "border-destructive/30" 
-                    : evidence.days_until_expiry <= 7 
-                    ? "border-warning/30" 
-                    : "border-border"
+                  evidence.days_until_expiry <= 0
+                    ? "border-destructive/30"
+                    : evidence.days_until_expiry <= 7
+                      ? "border-warning/30"
+                      : "border-border"
                 }`}
               >
                 <div className="flex items-center gap-4">
-                  <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${
-                    evidence.days_until_expiry <= 0 
-                      ? "bg-destructive/10 text-destructive"
-                      : evidence.days_until_expiry <= 7
-                      ? "bg-warning/10 text-warning"
-                      : "bg-muted text-muted-foreground"
-                  }`}>
+                  <div
+                    className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${
+                      evidence.days_until_expiry <= 0
+                        ? "bg-destructive/10 text-destructive"
+                        : evidence.days_until_expiry <= 7
+                          ? "bg-warning/10 text-warning"
+                          : "bg-muted text-muted-foreground"
+                    }`}
+                  >
                     <FileText className="h-5 w-5" />
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-medium text-foreground truncate">{evidence.document_name}</h3>
+                      <h3 className="font-medium text-foreground truncate">
+                        {evidence.document_name}
+                      </h3>
                       {getExpiryBadge(evidence.days_until_expiry)}
                     </div>
                     <p className="text-sm text-muted-foreground">
                       {evidence.end_user_profiles.business_name}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Expire le {new Date(evidence.expires_at).toLocaleDateString("fr-FR")}
+                      Expire le{" "}
+                      {new Date(evidence.expires_at).toLocaleDateString(
+                        "fr-FR",
+                      )}
                     </p>
                   </div>
 
@@ -349,7 +392,10 @@ export default function Expirations() {
                     variant="outline"
                     size="sm"
                     onClick={() => sendReminder(evidence)}
-                    disabled={sendingReminder === evidence.id || !evidence.end_user_profiles.contact_email}
+                    disabled={
+                      sendingReminder === evidence.id ||
+                      !evidence.end_user_profiles.contact_email
+                    }
                   >
                     {sendingReminder === evidence.id ? (
                       <Loader2 className="h-4 w-4 animate-spin" />

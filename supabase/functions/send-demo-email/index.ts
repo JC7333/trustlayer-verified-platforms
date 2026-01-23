@@ -2,7 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface DemoEmailRequest {
@@ -24,13 +25,13 @@ function isValidEmail(email: string): boolean {
 function extractEmail(input: string): string | null {
   if (!input || typeof input !== "string") return null;
   const trimmed = input.trim();
-  
+
   // Check for "Name <email>" format
   const bracketMatch = trimmed.match(/<([^>]+)>/);
   if (bracketMatch) {
     return bracketMatch[1].trim();
   }
-  
+
   // Plain email
   return trimmed;
 }
@@ -44,16 +45,16 @@ const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
   const entry = rateLimitMap.get(ip);
-  
+
   if (!entry || now > entry.resetTime) {
     rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
     return false;
   }
-  
+
   if (entry.count >= RATE_LIMIT) {
     return true;
   }
-  
+
   entry.count++;
   return false;
 }
@@ -76,21 +77,28 @@ serve(async (req: Request): Promise<Response> => {
 
   try {
     // === RATE LIMITING ===
-    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() 
-      || req.headers.get("cf-connecting-ip") 
-      || "unknown";
-    
+    const clientIp =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      req.headers.get("cf-connecting-ip") ||
+      "unknown";
+
     if (isRateLimited(clientIp)) {
-      console.log(`[send-demo-email] Rate limit exceeded for IP: ${clientIp.slice(0, 8)}...`);
+      console.log(
+        `[send-demo-email] Rate limit exceeded for IP: ${clientIp.slice(0, 8)}...`,
+      );
       return new Response(
         JSON.stringify({ error: "Too many requests. Please try again later." }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     const DEMO_NOTIFY_TO_EMAIL = Deno.env.get("DEMO_NOTIFY_TO_EMAIL");
-    const APP_PUBLIC_URL = Deno.env.get("APP_PUBLIC_URL") || "https://preuvio.com";
+    const APP_PUBLIC_URL =
+      Deno.env.get("APP_PUBLIC_URL") || "https://preuvio.com";
 
     console.log("[send-demo-email] Processing request...");
 
@@ -98,7 +106,10 @@ serve(async (req: Request): Promise<Response> => {
       console.error("[send-demo-email] RESEND_API_KEY is not configured");
       return new Response(
         JSON.stringify({ error: "Email service not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -106,23 +117,29 @@ serve(async (req: Request): Promise<Response> => {
       console.error("[send-demo-email] DEMO_NOTIFY_TO_EMAIL is not configured");
       return new Response(
         JSON.stringify({ error: "Demo notification email not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     // Validate the recipient email format
     const recipientEmail = extractEmail(DEMO_NOTIFY_TO_EMAIL);
-    
+
     if (!recipientEmail || !isValidEmail(recipientEmail)) {
       console.error("[send-demo-email] Invalid DEMO_NOTIFY_TO_EMAIL format");
       return new Response(
         JSON.stringify({ error: "Invalid recipient email configuration" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     const body: DemoEmailRequest = await req.json();
-    
+
     // Sanitize and validate inputs
     const name = sanitizeInput(body.name);
     const email = body.email?.trim().toLowerCase();
@@ -130,39 +147,50 @@ serve(async (req: Request): Promise<Response> => {
     const vertical = sanitizeInput(body.vertical);
     const volume = sanitizeInput(body.volume);
 
-    console.log(`[send-demo-email] Demo request from company: ${company.slice(0, 20)}...`);
+    console.log(
+      `[send-demo-email] Demo request from company: ${company.slice(0, 20)}...`,
+    );
 
     // Validate required fields
     if (!name || name.length < 2) {
       return new Response(
         JSON.stringify({ error: "Name is required (min 2 characters)" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     if (!email || !isValidEmail(email)) {
       return new Response(
         JSON.stringify({ error: "Valid email is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     if (!company || company.length < 2) {
       return new Response(
         JSON.stringify({ error: "Company is required (min 2 characters)" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     // Map vertical to display name
     const verticalNames: Record<string, string> = {
-      "sante": "Santé",
+      sante: "Santé",
       "services-domicile": "Services à domicile",
-      "marketplace": "Marketplace B2B",
+      marketplace: "Marketplace B2B",
       "services-financiers": "Services financiers",
-      "education": "Éducation",
-      "logistique": "Transport & Logistique",
-      "autre": "Autre",
+      education: "Éducation",
+      logistique: "Transport & Logistique",
+      autre: "Autre",
     };
 
     const volumeNames: Record<string, string> = {
@@ -241,7 +269,7 @@ serve(async (req: Request): Promise<Response> => {
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${RESEND_API_KEY}`,
+        Authorization: `Bearer ${RESEND_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -257,26 +285,31 @@ serve(async (req: Request): Promise<Response> => {
 
     if (!resendResponse.ok) {
       console.error("[send-demo-email] Resend API error:", resendData);
-      return new Response(
-        JSON.stringify({ error: "Failed to send email" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Failed to send email" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    console.log(`[send-demo-email] Email sent successfully. Message ID: ${resendData.id}`);
+    console.log(
+      `[send-demo-email] Email sent successfully. Message ID: ${resendData.id}`,
+    );
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message_id: resendData.id 
+      JSON.stringify({
+        success: true,
+        message_id: resendData.id,
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   } catch (error) {
     console.error("[send-demo-email] Error:", error);
-    return new Response(
-      JSON.stringify({ error: "An error occurred" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "An error occurred" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

@@ -2,14 +2,21 @@ import { MarketingNav } from "@/components/layout/MarketingNav";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CheckCircle2, Calendar, Sparkles, Clock, Users, Zap } from "lucide-react";
+import {
+  CheckCircle2,
+  Calendar,
+  Sparkles,
+  Clock,
+  Users,
+  Zap,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,7 +57,7 @@ export default function Demo() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const result = demoSchema.safeParse(formData);
     if (!result.success) {
       const newErrors: Record<string, string> = {};
@@ -62,41 +69,54 @@ export default function Demo() {
       setErrors(newErrors);
       return;
     }
-    
+
     setIsSubmitting(true);
     setErrors({});
-    
+
     try {
       // Insert into database
-      const { error: dbError } = await supabase.from("contact_requests").insert({
-        name: formData.name,
-        email: formData.email,
-        company: formData.company,
-        vertical: formData.vertical,
-        volume: formData.volume,
-        request_type: "demo",
-      });
-      
-      if (dbError) throw dbError;
-      
-      // Send email notification via Edge Function
-      const { error: emailError } = await supabase.functions.invoke("send-demo-email", {
-        body: {
+      const { error: dbError } = await supabase
+        .from("contact_requests")
+        .insert({
           name: formData.name,
           email: formData.email,
           company: formData.company,
           vertical: formData.vertical,
           volume: formData.volume,
+          request_type: "demo",
+        });
+
+      if (dbError) throw dbError;
+
+      // Send email notification via Edge Function
+      const { error: emailError } = await supabase.functions.invoke(
+        "send-demo-email",
+        {
+          body: {
+            name: formData.name,
+            email: formData.email,
+            company: formData.company,
+            vertical: formData.vertical,
+            volume: formData.volume,
+          },
         },
-      });
-      
+      );
+
       if (emailError) {
         console.error("Email notification failed:", emailError);
         // Don't fail the whole request if email fails
       }
-      
-      toast.success("Demande reçue ! Consultez votre email pour les créneaux disponibles.");
-      setFormData({ name: "", email: "", company: "", vertical: "", volume: "" });
+
+      toast.success(
+        "Demande reçue ! Consultez votre email pour les créneaux disponibles.",
+      );
+      setFormData({
+        name: "",
+        email: "",
+        company: "",
+        vertical: "",
+        volume: "",
+      });
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error("Error submitting demo request:", error);
@@ -110,7 +130,7 @@ export default function Demo() {
   return (
     <div className="min-h-screen bg-background">
       <MarketingNav />
-      
+
       <main className="pt-24">
         <section className="py-16">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -126,17 +146,25 @@ export default function Demo() {
                     Réservez votre démo personnalisée
                   </h1>
                   <p className="text-lg text-muted-foreground mb-8">
-                    Découvrez comment TrustLayer peut simplifier vos workflows de vérification. 
-                    Nous adapterons la présentation à votre cas d'usage spécifique.
+                    Découvrez comment TrustLayer peut simplifier vos workflows
+                    de vérification. Nous adapterons la présentation à votre cas
+                    d'usage spécifique.
                   </p>
 
                   {/* Stats */}
                   <div className="grid grid-cols-3 gap-4 mb-8">
                     {stats.map((stat) => (
-                      <div key={stat.label} className="text-center p-4 bg-secondary/50 rounded-xl">
+                      <div
+                        key={stat.label}
+                        className="text-center p-4 bg-secondary/50 rounded-xl"
+                      >
                         <stat.icon className="h-6 w-6 text-accent mx-auto mb-2" />
-                        <p className="text-lg font-bold text-foreground">{stat.value}</p>
-                        <p className="text-xs text-muted-foreground">{stat.label}</p>
+                        <p className="text-lg font-bold text-foreground">
+                          {stat.value}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {stat.label}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -152,8 +180,9 @@ export default function Demo() {
 
                   <div className="mt-10 p-6 bg-gradient-to-br from-accent/10 to-primary/10 rounded-xl border border-accent/20">
                     <p className="text-sm text-foreground">
-                      <strong>Après la démo :</strong> Vous recevrez un accès sandbox gratuit et la documentation 
-                      pour explorer TrustLayer à votre rythme. Aucun engagement requis.
+                      <strong>Après la démo :</strong> Vous recevrez un accès
+                      sandbox gratuit et la documentation pour explorer
+                      TrustLayer à votre rythme. Aucun engagement requis.
                     </p>
                   </div>
                 </div>
@@ -164,95 +193,163 @@ export default function Demo() {
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-accent">
                       <Calendar className="h-5 w-5 text-accent-foreground" />
                     </div>
-                    <h2 className="text-xl font-semibold text-foreground">Demander ma démo</h2>
+                    <h2 className="text-xl font-semibold text-foreground">
+                      Demander ma démo
+                    </h2>
                   </div>
                   <form onSubmit={handleSubmit} className="space-y-5">
                     <div>
-                      <label htmlFor="name" className="block text-sm font-medium text-foreground mb-2">
+                      <label
+                        htmlFor="name"
+                        className="block text-sm font-medium text-foreground mb-2"
+                      >
                         Votre nom
                       </label>
                       <Input
                         id="name"
                         value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, name: e.target.value })
+                        }
                         placeholder="Jean Dupont"
                       />
-                      {errors.name && <p className="text-sm text-destructive mt-1">{errors.name}</p>}
+                      {errors.name && (
+                        <p className="text-sm text-destructive mt-1">
+                          {errors.name}
+                        </p>
+                      )}
                     </div>
                     <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
+                      <label
+                        htmlFor="email"
+                        className="block text-sm font-medium text-foreground mb-2"
+                      >
                         Email professionnel
                       </label>
                       <Input
                         id="email"
                         type="email"
                         value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, email: e.target.value })
+                        }
                         placeholder="jean@entreprise.com"
                       />
-                      {errors.email && <p className="text-sm text-destructive mt-1">{errors.email}</p>}
+                      {errors.email && (
+                        <p className="text-sm text-destructive mt-1">
+                          {errors.email}
+                        </p>
+                      )}
                     </div>
                     <div>
-                      <label htmlFor="company" className="block text-sm font-medium text-foreground mb-2">
+                      <label
+                        htmlFor="company"
+                        className="block text-sm font-medium text-foreground mb-2"
+                      >
                         Entreprise
                       </label>
                       <Input
                         id="company"
                         value={formData.company}
-                        onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, company: e.target.value })
+                        }
                         placeholder="Votre Entreprise"
                       />
-                      {errors.company && <p className="text-sm text-destructive mt-1">{errors.company}</p>}
+                      {errors.company && (
+                        <p className="text-sm text-destructive mt-1">
+                          {errors.company}
+                        </p>
+                      )}
                     </div>
                     <div>
-                      <label htmlFor="vertical" className="block text-sm font-medium text-foreground mb-2">
+                      <label
+                        htmlFor="vertical"
+                        className="block text-sm font-medium text-foreground mb-2"
+                      >
                         Votre secteur
                       </label>
-                      <Select 
-                        value={formData.vertical} 
-                        onValueChange={(value) => setFormData({ ...formData, vertical: value })}
+                      <Select
+                        value={formData.vertical}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, vertical: value })
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Sélectionnez votre secteur" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="sante">Santé</SelectItem>
-                          <SelectItem value="services-domicile">Services à domicile</SelectItem>
-                          <SelectItem value="marketplace">Marketplace B2B</SelectItem>
-                          <SelectItem value="services-financiers">Services financiers</SelectItem>
+                          <SelectItem value="services-domicile">
+                            Services à domicile
+                          </SelectItem>
+                          <SelectItem value="marketplace">
+                            Marketplace B2B
+                          </SelectItem>
+                          <SelectItem value="services-financiers">
+                            Services financiers
+                          </SelectItem>
                           <SelectItem value="education">Éducation</SelectItem>
-                          <SelectItem value="logistique">Transport & Logistique</SelectItem>
+                          <SelectItem value="logistique">
+                            Transport & Logistique
+                          </SelectItem>
                           <SelectItem value="autre">Autre</SelectItem>
                         </SelectContent>
                       </Select>
-                      {errors.vertical && <p className="text-sm text-destructive mt-1">{errors.vertical}</p>}
+                      {errors.vertical && (
+                        <p className="text-sm text-destructive mt-1">
+                          {errors.vertical}
+                        </p>
+                      )}
                     </div>
                     <div>
-                      <label htmlFor="volume" className="block text-sm font-medium text-foreground mb-2">
+                      <label
+                        htmlFor="volume"
+                        className="block text-sm font-medium text-foreground mb-2"
+                      >
                         Vérifications mensuelles estimées
                       </label>
-                      <Select 
-                        value={formData.volume} 
-                        onValueChange={(value) => setFormData({ ...formData, volume: value })}
+                      <Select
+                        value={formData.volume}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, volume: value })
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Sélectionnez un volume" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="moins-100">Moins de 100</SelectItem>
+                          <SelectItem value="moins-100">
+                            Moins de 100
+                          </SelectItem>
                           <SelectItem value="100-500">100 - 500</SelectItem>
                           <SelectItem value="500-1000">500 - 1 000</SelectItem>
-                          <SelectItem value="1000-5000">1 000 - 5 000</SelectItem>
-                          <SelectItem value="plus-5000">Plus de 5 000</SelectItem>
+                          <SelectItem value="1000-5000">
+                            1 000 - 5 000
+                          </SelectItem>
+                          <SelectItem value="plus-5000">
+                            Plus de 5 000
+                          </SelectItem>
                         </SelectContent>
                       </Select>
-                      {errors.volume && <p className="text-sm text-destructive mt-1">{errors.volume}</p>}
+                      {errors.volume && (
+                        <p className="text-sm text-destructive mt-1">
+                          {errors.volume}
+                        </p>
+                      )}
                     </div>
-                    <Button type="submit" variant="accent" size="lg" className="w-full" disabled={isSubmitting}>
+                    <Button
+                      type="submit"
+                      variant="accent"
+                      size="lg"
+                      className="w-full"
+                      disabled={isSubmitting}
+                    >
                       {isSubmitting ? "Envoi en cours..." : "Réserver ma démo"}
                     </Button>
                     <p className="text-xs text-center text-muted-foreground">
-                      Nous vous répondrons sous 24h avec les créneaux disponibles.
+                      Nous vous répondrons sous 24h avec les créneaux
+                      disponibles.
                     </p>
                   </form>
                 </div>

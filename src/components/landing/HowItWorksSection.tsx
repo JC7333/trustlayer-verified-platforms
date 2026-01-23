@@ -1,34 +1,44 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ArrowRight, Upload, Brain, CheckCircle2, BadgeCheck } from "lucide-react";
+import {
+  ArrowRight,
+  Upload,
+  Brain,
+  CheckCircle2,
+  BadgeCheck,
+} from "lucide-react";
 
 const steps = [
   {
     number: "01",
     icon: Upload,
     title: "Collectez les preuves",
-    description: "Vos utilisateurs uploadent leurs documents via votre plateforme ou notre portail white-label. Demandes automatisées par email.",
+    description:
+      "Vos utilisateurs uploadent leurs documents via votre plateforme ou notre portail white-label. Demandes automatisées par email.",
     visual: "upload",
   },
   {
     number: "02",
     icon: Brain,
     title: "L'IA pré-analyse",
-    description: "Notre IA détecte le type de document, extrait les informations clés et signale les anomalies potentielles.",
+    description:
+      "Notre IA détecte le type de document, extrait les informations clés et signale les anomalies potentielles.",
     visual: "ai",
   },
   {
     number: "03",
     icon: CheckCircle2,
     title: "Vos reviewers décident",
-    description: "Console optimisée avec checklists, comparaison côte-à-côte et suggestions IA. Workflow de double validation optionnel.",
+    description:
+      "Console optimisée avec checklists, comparaison côte-à-côte et suggestions IA. Workflow de double validation optionnel.",
     visual: "review",
   },
   {
     number: "04",
     icon: BadgeCheck,
     title: "Badges délivrés",
-    description: "Profils approuvés reçoivent un badge de confiance avec Trust Score™. Widget intégrable sur votre plateforme.",
+    description:
+      "Profils approuvés reçoivent un badge de confiance avec Trust Score™. Widget intégrable sur votre plateforme.",
     visual: "badge",
   },
 ];
@@ -45,7 +55,8 @@ export function HowItWorksSection() {
             De la collecte au badge en 4 étapes
           </h2>
           <p className="text-lg text-muted-foreground">
-            Un workflow fluide, assisté par IA, avec contrôle humain pour les décisions finales.
+            Un workflow fluide, assisté par IA, avec contrôle humain pour les
+            décisions finales.
           </p>
         </div>
 
@@ -53,7 +64,7 @@ export function HowItWorksSection() {
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 relative">
             {/* Connection line */}
             <div className="hidden lg:block absolute top-16 left-[12.5%] right-[12.5%] h-0.5 bg-gradient-to-r from-accent via-accent to-accent/20" />
-            
+
             {steps.map((step, index) => (
               <div key={step.number} className="relative">
                 {/* Step card */}
@@ -64,7 +75,7 @@ export function HowItWorksSection() {
                       {step.number}
                     </span>
                   </div>
-                  
+
                   <h3 className="text-lg font-semibold text-foreground mb-3">
                     {step.title}
                   </h3>

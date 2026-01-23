@@ -1,12 +1,14 @@
 # Sécurité V1 — baseline (pragmatique)
 
 ## Invariants
+
 - Storage privé + signed URLs courtes
 - RLS partout + tests d’isolement multi-tenant
 - Secrets uniquement server-side (Vault/Secrets)
 - Audit log append-only (no delete/update)
 
 ## Checklist release
+
 - [ ] RLS test: un user A ne lit jamais platform_id B
 - [ ] Bucket evidences privé + signed URLs 5–15 min
 - [ ] Rate limit sur validate-magic-link / submit-evidence

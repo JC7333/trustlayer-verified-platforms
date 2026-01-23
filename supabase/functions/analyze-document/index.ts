@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface AnalyzeDocumentRequest {
@@ -34,25 +35,31 @@ serve(async (req: Request): Promise<Response> => {
     // === AUTHENTICATION CHECK ===
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      console.error("[analyze-document] Missing or invalid Authorization header");
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      console.error(
+        "[analyze-document] Missing or invalid Authorization header",
       );
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Create client with user's token to validate JWT
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
+      global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: userData, error: userError } = await supabaseAuth.auth.getUser();
-    
+    const { data: userData, error: userError } =
+      await supabaseAuth.auth.getUser();
+
     if (userError || !userData?.user) {
       console.error("[analyze-document] JWT validation failed:", userError);
       return new Response(
         JSON.stringify({ error: "Unauthorized - Invalid token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -66,7 +73,10 @@ serve(async (req: Request): Promise<Response> => {
       console.error("[analyze-document] LOVABLE_API_KEY is not configured");
       return new Response(
         JSON.stringify({ error: "AI service not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -74,13 +84,15 @@ serve(async (req: Request): Promise<Response> => {
     const { evidence_id } = body;
 
     if (!evidence_id) {
-      return new Response(
-        JSON.stringify({ error: "Missing evidence_id" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Missing evidence_id" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    console.log(`[analyze-document] Starting analysis for evidence: ${evidence_id}`);
+    console.log(
+      `[analyze-document] Starting analysis for evidence: ${evidence_id}`,
+    );
 
     // Fetch evidence
     const { data: evidence, error: evidenceError } = await supabase
@@ -91,36 +103,52 @@ serve(async (req: Request): Promise<Response> => {
 
     if (evidenceError || !evidence) {
       console.error("[analyze-document] Evidence not found:", evidenceError);
-      return new Response(
-        JSON.stringify({ error: "Evidence not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Evidence not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // === AUTHORIZATION CHECK: Verify user has access to this platform ===
-    const { data: hasAccess } = await supabase
-      .rpc("has_platform_access", { _user_id: userId, _platform_id: evidence.platform_id });
+    const { data: hasAccess } = await supabase.rpc("has_platform_access", {
+      _user_id: userId,
+      _platform_id: evidence.platform_id,
+    });
 
     if (!hasAccess) {
-      console.error(`[analyze-document] User ${userId} does not have access to platform ${evidence.platform_id}`);
+      console.error(
+        `[analyze-document] User ${userId} does not have access to platform ${evidence.platform_id}`,
+      );
       return new Response(
         JSON.stringify({ error: "Forbidden - No access to this platform" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
-    console.log(`[analyze-document] User ${userId} authorized for platform ${evidence.platform_id}`);
+    console.log(
+      `[analyze-document] User ${userId} authorized for platform ${evidence.platform_id}`,
+    );
 
     // Get signed URL for the file (5 min validity)
-    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-      .from("evidences")
-      .createSignedUrl(evidence.file_path, 300);
+    const { data: signedUrlData, error: signedUrlError } =
+      await supabase.storage
+        .from("evidences")
+        .createSignedUrl(evidence.file_path, 300);
 
     if (signedUrlError || !signedUrlData?.signedUrl) {
-      console.error("[analyze-document] Failed to get signed URL:", signedUrlError);
+      console.error(
+        "[analyze-document] Failed to get signed URL:",
+        signedUrlError,
+      );
       return new Response(
         JSON.stringify({ error: "Failed to access document" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -131,25 +159,30 @@ serve(async (req: Request): Promise<Response> => {
     const fileBlob = await fileResponse.blob();
     const arrayBuffer = await fileBlob.arrayBuffer();
     const base64Image = btoa(
-      new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      new Uint8Array(arrayBuffer).reduce(
+        (data, byte) => data + String.fromCharCode(byte),
+        "",
+      ),
     );
 
     // Determine media type
     const mediaType = evidence.mime_type || "image/jpeg";
 
     // Call Lovable AI Gateway with vision
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `Tu es un expert en extraction de données de documents administratifs français. 
+    const aiResponse = await fetch(
+      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            {
+              role: "system",
+              content: `Tu es un expert en extraction de données de documents administratifs français. 
 Tu dois analyser l'image d'un document et extraire les informations suivantes au format JSON strict.
 
 IMPORTANT: Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ou après.
@@ -169,50 +202,60 @@ Règles:
 - Le score de confidence reflète la qualité de lecture (0.5 = illisible, 0.8 = lisible avec doutes, 1.0 = parfaitement lisible)
 - Les dates doivent être au format ISO (YYYY-MM-DD)
 - Pour les cartes VTC, cherche la date de validité
-- Pour les attestations d'assurance, cherche la période de couverture`
-          },
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: `Analyse ce document "${evidence.document_name}" de type attendu "${evidence.document_type}" et extrais les informations demandées.`
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:${mediaType};base64,${base64Image}`
-                }
-              }
-            ]
-          }
-        ],
-        max_tokens: 1000,
-      }),
-    });
+- Pour les attestations d'assurance, cherche la période de couverture`,
+            },
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: `Analyse ce document "${evidence.document_name}" de type attendu "${evidence.document_type}" et extrais les informations demandées.`,
+                },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:${mediaType};base64,${base64Image}`,
+                  },
+                },
+              ],
+            },
+          ],
+          max_tokens: 1000,
+        }),
+      },
+    );
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error("[analyze-document] AI API error:", aiResponse.status, errorText);
-      
+      console.error(
+        "[analyze-document] AI API error:",
+        aiResponse.status,
+        errorText,
+      );
+
       if (aiResponse.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Rate limit exceeded, please try again later" }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
-      if (aiResponse.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted" }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            error: "Rate limit exceeded, please try again later",
+          }),
+          {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
 
-      return new Response(
-        JSON.stringify({ error: "AI analysis failed" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      if (aiResponse.status === 402) {
+        return new Response(JSON.stringify({ error: "AI credits exhausted" }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ error: "AI analysis failed" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const aiData = await aiResponse.json();
@@ -231,7 +274,10 @@ Règles:
         throw new Error("No JSON found in response");
       }
     } catch (parseError) {
-      console.error("[analyze-document] Failed to parse AI response:", parseError);
+      console.error(
+        "[analyze-document] Failed to parse AI response:",
+        parseError,
+      );
       extractedData = {
         doc_type: evidence.document_type,
         name_or_company: null,
@@ -268,7 +314,10 @@ Règles:
       .eq("id", evidence_id);
 
     if (updateError) {
-      console.error("[analyze-document] Failed to update evidence:", updateError);
+      console.error(
+        "[analyze-document] Failed to update evidence:",
+        updateError,
+      );
     }
 
     // Log the analysis
@@ -278,27 +327,37 @@ Règles:
       action: "ai_analysis_completed",
       entity_type: "evidence",
       entity_id: evidence_id,
-      new_data: { 
+      new_data: {
         confidence: extractedData.confidence,
         doc_type: extractedData.doc_type,
         expiry_date: extractedData.expiry_date,
       },
     });
 
-    console.log(`[analyze-document] Analysis completed for evidence: ${evidence_id}`);
+    console.log(
+      `[analyze-document] Analysis completed for evidence: ${evidence_id}`,
+    );
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        extracted_data: extractedData 
+      JSON.stringify({
+        success: true,
+        extracted_data: extractedData,
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   } catch (error) {
     console.error("[analyze-document] Error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Unknown error",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

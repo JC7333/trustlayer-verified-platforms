@@ -4,7 +4,8 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
@@ -13,7 +14,12 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const DEFAULT_FROM_EMAIL = "onboarding@resend.dev";
 
 interface SendNotificationRequest {
-  type: "expiration_reminder" | "document_rejected" | "document_approved" | "new_link" | "deposit_confirmation";
+  type:
+    | "expiration_reminder"
+    | "document_rejected"
+    | "document_approved"
+    | "new_link"
+    | "deposit_confirmation";
   to_email: string;
   platform_name: string;
   provider_name: string;
@@ -34,17 +40,33 @@ function isValidEmail(email: string): boolean {
 }
 
 const getEmailContent = (params: SendNotificationRequest) => {
-  const { type, platform_name, provider_name, document_name, days_until_expiry, magic_link_url, rejection_reason, documents_submitted } = params;
-  
+  const {
+    type,
+    platform_name,
+    provider_name,
+    document_name,
+    days_until_expiry,
+    magic_link_url,
+    rejection_reason,
+    documents_submitted,
+  } = params;
+
   switch (type) {
-    case "expiration_reminder": {
-      const urgency = days_until_expiry === 0 ? "URGENT" : days_until_expiry === 1 ? "Important" : "Rappel";
-      const expiryText = days_until_expiry === 0 
-        ? "expire aujourd'hui" 
-        : days_until_expiry === 1 
-          ? "expire demain"
-          : `expire dans ${days_until_expiry} jours`;
-    }  
+    case "expiration_reminder":
+      {
+        const urgency =
+          days_until_expiry === 0
+            ? "URGENT"
+            : days_until_expiry === 1
+              ? "Important"
+              : "Rappel";
+        const expiryText =
+          days_until_expiry === 0
+            ? "expire aujourd'hui"
+            : days_until_expiry === 1
+              ? "expire demain"
+              : `expire dans ${days_until_expiry} jours`;
+      }
       return {
         subject: `[${urgency}] ${document_name} ${expiryText} - ${platform_name}`,
         html: `
@@ -56,21 +78,26 @@ const getEmailContent = (params: SendNotificationRequest) => {
             <p style="color: #4a4a4a; line-height: 1.6; font-size: 16px;">
               Votre document <strong>${document_name}</strong> ${expiryText}.
             </p>
-            <div style="background-color: ${days_until_expiry === 0 ? '#fef2f2' : '#fffbeb'}; border-left: 4px solid ${days_until_expiry === 0 ? '#dc2626' : '#f59e0b'}; padding: 16px; margin: 20px 0;">
-              <p style="color: ${days_until_expiry === 0 ? '#dc2626' : '#92400e'}; margin: 0; font-weight: 500;">
-                ${days_until_expiry === 0 
-                  ? "⚠️ Votre accès à la plateforme sera suspendu si ce document n'est pas renouvelé."
-                  : "📋 Veuillez le renouveler dès que possible pour éviter toute interruption de service."
+            <div style="background-color: ${days_until_expiry === 0 ? "#fef2f2" : "#fffbeb"}; border-left: 4px solid ${days_until_expiry === 0 ? "#dc2626" : "#f59e0b"}; padding: 16px; margin: 20px 0;">
+              <p style="color: ${days_until_expiry === 0 ? "#dc2626" : "#92400e"}; margin: 0; font-weight: 500;">
+                ${
+                  days_until_expiry === 0
+                    ? "⚠️ Votre accès à la plateforme sera suspendu si ce document n'est pas renouvelé."
+                    : "📋 Veuillez le renouveler dès que possible pour éviter toute interruption de service."
                 }
               </p>
             </div>
-            ${magic_link_url ? `
+            ${
+              magic_link_url
+                ? `
               <div style="margin: 30px 0; text-align: center;">
                 <a href="${magic_link_url}" style="background-color: #0F4C81; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 500;">
                   Mettre à jour mes documents
                 </a>
               </div>
-            ` : ""}
+            `
+                : ""
+            }
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;" />
             <p style="color: #6b7280; font-size: 14px; margin: 0;">
               — L'équipe ${platform_name}
@@ -91,21 +118,29 @@ const getEmailContent = (params: SendNotificationRequest) => {
             <p style="color: #4a4a4a; line-height: 1.6; font-size: 16px;">
               Votre document <strong>${document_name}</strong> a été rejeté.
             </p>
-            ${rejection_reason ? `
+            ${
+              rejection_reason
+                ? `
               <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 16px; margin: 20px 0;">
                 <p style="color: #dc2626; margin: 0;"><strong>Motif :</strong> ${rejection_reason}</p>
               </div>
-            ` : ""}
+            `
+                : ""
+            }
             <p style="color: #4a4a4a; line-height: 1.6; font-size: 16px;">
               Veuillez soumettre un nouveau document conforme dans les plus brefs délais.
             </p>
-            ${magic_link_url ? `
+            ${
+              magic_link_url
+                ? `
               <div style="margin: 30px 0; text-align: center;">
                 <a href="${magic_link_url}" style="background-color: #0F4C81; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 500;">
                   Soumettre un nouveau document
                 </a>
               </div>
-            ` : ""}
+            `
+                : ""
+            }
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;" />
             <p style="color: #6b7280; font-size: 14px; margin: 0;">
               — L'équipe ${platform_name}
@@ -173,7 +208,8 @@ const getEmailContent = (params: SendNotificationRequest) => {
       };
 
     case "deposit_confirmation": {
-      const docList = documents_submitted?.join(", ") || document_name || "vos documents";
+      const docList =
+        documents_submitted?.join(", ") || document_name || "vos documents";
       return {
         subject: `Confirmation de dépôt - ${platform_name}`,
         html: `
@@ -193,13 +229,17 @@ const getEmailContent = (params: SendNotificationRequest) => {
             <p style="color: #4a4a4a; line-height: 1.6; font-size: 16px;">
               Délai habituel de traitement : <strong>24-48h ouvrées</strong>.
             </p>
-            ${magic_link_url ? `
+            ${
+              magic_link_url
+                ? `
               <div style="margin: 30px 0; text-align: center;">
                 <a href="${magic_link_url}" style="background-color: #6b7280; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 500;">
                   Voir mes documents
                 </a>
               </div>
-            ` : ""}
+            `
+                : ""
+            }
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;" />
             <p style="color: #6b7280; font-size: 14px; margin: 0;">
               — L'équipe ${platform_name}
@@ -228,66 +268,74 @@ serve(async (req: Request): Promise<Response> => {
     // 1. Internal service calls (from other edge functions using service role)
     // 2. Authenticated users with platform access
     const authHeader = req.headers.get("Authorization");
-    
+
     if (!authHeader?.startsWith("Bearer ")) {
       console.error("[send-notification] Missing Authorization header");
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const token = authHeader.replace("Bearer ", "");
-    
+
     // Check if this is a service role call (internal)
     const isServiceRole = token === supabaseServiceKey;
-    
+
     if (!isServiceRole) {
       // Validate as user JWT
       const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
-        global: { headers: { Authorization: authHeader } }
+        global: { headers: { Authorization: authHeader } },
       });
 
-      const { data: userData, error: userError } = await supabaseAuth.auth.getUser();
-      
+      const { data: userData, error: userError } =
+        await supabaseAuth.auth.getUser();
+
       if (userError || !userData?.user) {
         console.error("[send-notification] JWT validation failed:", userError);
         return new Response(
           JSON.stringify({ error: "Unauthorized - Invalid token" }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
 
-      console.log(`[send-notification] Authenticated user: ${userData.user.id}`);
+      console.log(
+        `[send-notification] Authenticated user: ${userData.user.id}`,
+      );
     } else {
       console.log("[send-notification] Service role authentication");
     }
 
     // === PROCESS REQUEST ===
     const body: SendNotificationRequest = await req.json();
-    
+
     if (!body.to_email) {
       console.error("[send-notification] Missing to_email in request");
-      return new Response(
-        JSON.stringify({ error: "Missing to_email" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Missing to_email" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Validate email format
     if (!isValidEmail(body.to_email)) {
       console.error("[send-notification] Invalid to_email format");
-      return new Response(
-        JSON.stringify({ error: "Invalid email format" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Invalid email format" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const { subject, html } = getEmailContent(body);
     const fromEmail = body.from_email || DEFAULT_FROM_EMAIL;
     const fromName = body.platform_name || "TrustLayer";
 
-    console.log(`[send-notification] Sending ${body.type} email to ${body.to_email} from ${fromName}`);
+    console.log(
+      `[send-notification] Sending ${body.type} email to ${body.to_email} from ${fromName}`,
+    );
 
     const { data, error } = await resend.emails.send({
       from: `${fromName} <${fromEmail}>`,
@@ -298,50 +346,52 @@ serve(async (req: Request): Promise<Response> => {
 
     if (error) {
       console.error("[send-notification] Resend error:", error);
-      
+
       // Update notification status if notification_id provided
       if (body.notification_id) {
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
-        
+
         await supabase
           .from("notifications_queue")
-          .update({ 
-            status: "failed", 
+          .update({
+            status: "failed",
             error_message: error.message,
           })
           .eq("id", body.notification_id);
       }
-      
-      return new Response(
-        JSON.stringify({ error: error.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    console.log(`[send-notification] Email sent successfully: ${body.type} (id: ${data?.id})`);
+    console.log(
+      `[send-notification] Email sent successfully: ${body.type} (id: ${data?.id})`,
+    );
 
     // Update notification status if notification_id provided
     if (body.notification_id) {
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
-      
+
       await supabase
         .from("notifications_queue")
-        .update({ 
-          status: "sent", 
+        .update({
+          status: "sent",
           sent_at: new Date().toISOString(),
         })
         .eq("id", body.notification_id);
     }
 
-    return new Response(
-      JSON.stringify({ success: true, id: data?.id }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ success: true, id: data?.id }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("[send-notification] Error:", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

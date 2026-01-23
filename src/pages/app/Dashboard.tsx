@@ -2,11 +2,11 @@ import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlatform } from "@/hooks/usePlatform";
-import { 
-  FileCheck, 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
+import {
+  FileCheck,
+  CheckCircle2,
+  XCircle,
+  Clock,
   AlertTriangle,
   TrendingUp,
   Calendar,
@@ -17,7 +17,7 @@ import {
   Users,
   Inbox,
   Loader2,
-  Download
+  Download,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -74,31 +74,35 @@ export default function Dashboard() {
 
     try {
       // Fetch counts
-      const [pendingRes, approvedRes, rejectedRes, expiringRes] = await Promise.all([
-        supabase
-          .from("evidences")
-          .select("id", { count: "exact", head: true })
-          .eq("platform_id", currentPlatform.id)
-          .eq("review_status", "pending"),
-        supabase
-          .from("evidences")
-          .select("id", { count: "exact", head: true })
-          .eq("platform_id", currentPlatform.id)
-          .eq("review_status", "approved"),
-        supabase
-          .from("evidences")
-          .select("id", { count: "exact", head: true })
-          .eq("platform_id", currentPlatform.id)
-          .eq("review_status", "rejected"),
-        supabase
-          .from("evidences")
-          .select("id", { count: "exact", head: true })
-          .eq("platform_id", currentPlatform.id)
-          .eq("review_status", "approved")
-          .not("expires_at", "is", null)
-          .lte("expires_at", new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString())
-          .gte("expires_at", new Date().toISOString()),
-      ]);
+      const [pendingRes, approvedRes, rejectedRes, expiringRes] =
+        await Promise.all([
+          supabase
+            .from("evidences")
+            .select("id", { count: "exact", head: true })
+            .eq("platform_id", currentPlatform.id)
+            .eq("review_status", "pending"),
+          supabase
+            .from("evidences")
+            .select("id", { count: "exact", head: true })
+            .eq("platform_id", currentPlatform.id)
+            .eq("review_status", "approved"),
+          supabase
+            .from("evidences")
+            .select("id", { count: "exact", head: true })
+            .eq("platform_id", currentPlatform.id)
+            .eq("review_status", "rejected"),
+          supabase
+            .from("evidences")
+            .select("id", { count: "exact", head: true })
+            .eq("platform_id", currentPlatform.id)
+            .eq("review_status", "approved")
+            .not("expires_at", "is", null)
+            .lte(
+              "expires_at",
+              new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            )
+            .gte("expires_at", new Date().toISOString()),
+        ]);
 
       setStats({
         pendingCount: pendingRes.count || 0,
@@ -110,10 +114,12 @@ export default function Dashboard() {
       // Fetch recent evidences
       const { data: recent } = await supabase
         .from("evidences")
-        .select(`
+        .select(
+          `
           id, document_name, review_status, created_at, extraction_confidence,
           end_user_profiles!inner(business_name)
-        `)
+        `,
+        )
         .eq("platform_id", currentPlatform.id)
         .order("created_at", { ascending: false })
         .limit(5);
@@ -121,13 +127,17 @@ export default function Dashboard() {
       setRecentEvidences(recent || []);
 
       // Fetch expiring soon
-      const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      const thirtyDaysFromNow = new Date(
+        Date.now() + 30 * 24 * 60 * 60 * 1000,
+      ).toISOString();
       const { data: expiring } = await supabase
         .from("evidences")
-        .select(`
+        .select(
+          `
           id, document_name, expires_at,
           end_user_profiles!inner(business_name)
-        `)
+        `,
+        )
         .eq("platform_id", currentPlatform.id)
         .eq("review_status", "approved")
         .not("expires_at", "is", null)
@@ -146,7 +156,7 @@ export default function Dashboard() {
 
   const handleExport = async () => {
     if (!currentPlatform) return;
-    
+
     setExporting(true);
     try {
       const { data, error } = await supabase.functions.invoke("export-audit", {
@@ -233,12 +243,16 @@ export default function Dashboard() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Tableau de bord</h1>
-            <p className="text-muted-foreground">Vue d'ensemble de votre pipeline de vérification</p>
+            <h1 className="text-2xl font-bold text-foreground">
+              Tableau de bord
+            </h1>
+            <p className="text-muted-foreground">
+              Vue d'ensemble de votre pipeline de vérification
+            </p>
           </div>
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleExport}
               disabled={exporting}
             >
@@ -268,10 +282,12 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-foreground mb-1">
-                    {stats.pendingCount} document{stats.pendingCount > 1 ? "s" : ""} en attente
+                    {stats.pendingCount} document
+                    {stats.pendingCount > 1 ? "s" : ""} en attente
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    Cliquez pour accéder à l'Inbox et traiter les documents en attente de validation.
+                    Cliquez pour accéder à l'Inbox et traiter les documents en
+                    attente de validation.
                   </p>
                 </div>
                 <Button variant="warning" size="sm" className="shrink-0">
@@ -288,17 +304,26 @@ export default function Dashboard() {
             <Link key={stat.label} to={stat.link}>
               <div className="bg-card rounded-xl p-6 border border-border hover:border-accent/30 transition-colors cursor-pointer h-full">
                 <div className="flex items-center justify-between mb-4">
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                    stat.color === "success" ? "bg-success/10 text-success" :
-                    stat.color === "warning" ? "bg-warning/10 text-warning" :
-                    stat.color === "destructive" ? "bg-destructive/10 text-destructive" :
-                    "bg-accent/10 text-accent"
-                  }`}>
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+                      stat.color === "success"
+                        ? "bg-success/10 text-success"
+                        : stat.color === "warning"
+                          ? "bg-warning/10 text-warning"
+                          : stat.color === "destructive"
+                            ? "bg-destructive/10 text-destructive"
+                            : "bg-accent/10 text-accent"
+                    }`}
+                  >
                     <stat.icon className="h-5 w-5" />
                   </div>
                 </div>
-                <div className="text-3xl font-bold text-foreground mb-1">{stat.value}</div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
+                <div className="text-3xl font-bold text-foreground mb-1">
+                  {stat.value}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {stat.label}
+                </div>
               </div>
             </Link>
           ))}
@@ -309,8 +334,13 @@ export default function Dashboard() {
           {/* Recent Evidences */}
           <div className="lg:col-span-2 bg-card rounded-xl border border-border overflow-hidden">
             <div className="flex items-center justify-between p-6 border-b border-border">
-              <h2 className="font-semibold text-foreground">Documents récents</h2>
-              <Link to="/app/review" className="text-sm text-accent hover:underline">
+              <h2 className="font-semibold text-foreground">
+                Documents récents
+              </h2>
+              <Link
+                to="/app/review"
+                className="text-sm text-accent hover:underline"
+              >
                 Voir tout
               </Link>
             </div>
@@ -328,7 +358,9 @@ export default function Dashboard() {
                           <FileCheck className="h-5 w-5" />
                         </div>
                         <div>
-                          <p className="font-medium text-foreground">{evidence.document_name}</p>
+                          <p className="font-medium text-foreground">
+                            {evidence.document_name}
+                          </p>
                           <p className="text-sm text-muted-foreground">
                             {evidence.end_user_profiles.business_name}
                           </p>
@@ -336,19 +368,28 @@ export default function Dashboard() {
                       </div>
                       <div className="flex items-center gap-4">
                         {evidence.extraction_confidence !== null && (
-                          <div className={`hidden md:flex items-center gap-1 text-sm font-medium ${
-                            evidence.extraction_confidence >= 0.7 ? "text-success" : 
-                            evidence.extraction_confidence >= 0.4 ? "text-warning" : "text-destructive"
-                          }`}>
+                          <div
+                            className={`hidden md:flex items-center gap-1 text-sm font-medium ${
+                              evidence.extraction_confidence >= 0.7
+                                ? "text-success"
+                                : evidence.extraction_confidence >= 0.4
+                                  ? "text-warning"
+                                  : "text-destructive"
+                            }`}
+                          >
                             <Zap className="h-3 w-3" />
                             {Math.round(evidence.extraction_confidence * 100)}%
                           </div>
                         )}
-                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[evidence.review_status]}`}>
+                        <span
+                          className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[evidence.review_status]}`}
+                        >
                           {statusLabels[evidence.review_status]}
                         </span>
                         <span className="text-sm text-muted-foreground hidden sm:block">
-                          {new Date(evidence.created_at).toLocaleDateString("fr-FR")}
+                          {new Date(evidence.created_at).toLocaleDateString(
+                            "fr-FR",
+                          )}
                         </span>
                       </div>
                     </div>
@@ -360,7 +401,9 @@ export default function Dashboard() {
 
           {/* Quick Actions */}
           <div className="bg-card rounded-xl border border-border p-6">
-            <h2 className="font-semibold text-foreground mb-4">Actions rapides</h2>
+            <h2 className="font-semibold text-foreground mb-4">
+              Actions rapides
+            </h2>
             <div className="space-y-3">
               <Link to="/app/inbox">
                 <Button variant="outline" className="w-full justify-start">
@@ -412,14 +455,16 @@ export default function Dashboard() {
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {expiringDocs.map((doc) => (
-                <div 
-                  key={doc.id} 
+                <div
+                  key={doc.id}
                   className="p-4 rounded-xl bg-warning/5 border border-warning/20 hover:border-warning/40 transition-colors"
                 >
                   <p className="font-medium text-foreground text-sm mb-1 truncate">
                     {doc.end_user_profiles.business_name}
                   </p>
-                  <p className="text-xs text-muted-foreground mb-2 truncate">{doc.document_name}</p>
+                  <p className="text-xs text-muted-foreground mb-2 truncate">
+                    {doc.document_name}
+                  </p>
                   <p className="text-xs text-warning font-medium">
                     {new Date(doc.expires_at).toLocaleDateString("fr-FR")}
                   </p>

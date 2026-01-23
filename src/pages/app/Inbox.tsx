@@ -11,7 +11,6 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  AlertTriangle,
   Eye,
   Loader2,
   FileText,
@@ -21,11 +20,10 @@ import {
   Mail,
   Phone,
   Zap,
-  X,
   ThumbsUp,
   ThumbsDown,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
 } from "lucide-react";
 import {
   Dialog,
@@ -57,9 +55,19 @@ interface EvidenceWithProfile {
   created_at: string;
   rejection_reason: string | null;
   extraction_confidence: number | null;
-  ai_analysis: unknown;
+
+  // JSONB (IA) — on le typpe permissif pour éviter les erreurs TS VS Code
+  ai_analysis: {
+    doc_type?: string;
+    name_or_company?: string;
+    siret_siren?: string;
+    expiry_date?: string;
+    [key: string]: unknown;
+  } | null;
+
   profile_id: string;
   platform_id: string;
+
   end_user_profiles: {
     id: string;
     business_name: string;
@@ -81,14 +89,19 @@ const rejectionReasons = [
 export default function Inbox() {
   const { currentPlatform, loading: platformLoading } = usePlatform();
   const { user } = useAuth();
+
   const [evidences, setEvidences] = useState<EvidenceWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedEvidence, setSelectedEvidence] = useState<EvidenceWithProfile | null>(null);
+
+  const [selectedEvidence, setSelectedEvidence] =
+    useState<EvidenceWithProfile | null>(null);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [loadingUrl, setLoadingUrl] = useState(false);
+
   const [processing, setProcessing] = useState(false);
+
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [rejectionComment, setRejectionComment] = useState("");
@@ -97,6 +110,7 @@ export default function Inbox() {
     if (currentPlatform) {
       fetchPendingEvidences();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPlatform]);
 
   const fetchPendingEvidences = async () => {
@@ -105,16 +119,18 @@ export default function Inbox() {
     try {
       const { data, error } = await supabase
         .from("evidences")
-        .select(`
+        .select(
+          `
           *,
           end_user_profiles!inner(id, business_name, contact_email, contact_phone, status)
-        `)
+        `,
+        )
         .eq("platform_id", currentPlatform.id)
         .eq("review_status", "pending")
         .order("created_at", { ascending: true });
 
       if (error) throw error;
-      setEvidences(data || []);
+      setEvidences((data as EvidenceWithProfile[]) || []);
     } catch (err) {
       console.error("Error fetching evidences:", err);
       toast.error("Erreur lors du chargement");
@@ -154,32 +170,37 @@ export default function Inbox() {
 
     setProcessing(true);
     try {
-      const { error } = await supabase
+      // 1) Update evidence status (DB)
+      const { error: updErr } = await supabase
         .from("evidences")
         .update({
           review_status: "approved",
-          status: "valid",
-          reviewer_id: user.id,
-          reviewed_at: new Date().toISOString(),
+          status: "approved",
+          rejection_reason: null,
         })
         .eq("id", selectedEvidence.id);
 
-      if (error) throw error;
+      if (updErr) throw updErr;
 
-      await supabase.functions.invoke("log-audit", {
-        body: {
-          platform_id: selectedEvidence.platform_id,
-          action: "evidence_approved",
-          entity_type: "evidence",
-          entity_id: selectedEvidence.id,
-          new_data: {
-            document_type: selectedEvidence.document_type,
-            business_name: selectedEvidence.end_user_profiles.business_name,
-          },
+      // 2) Audit log (server-only)
+      const auditPayload = {
+        platform_id: selectedEvidence.platform_id,
+        action: "evidence_approved",
+        entity_type: "evidence",
+        entity_id: selectedEvidence.id,
+        new_data: {
+          document_type: selectedEvidence.document_type,
+          business_name: selectedEvidence.end_user_profiles.business_name,
         },
+      };
+
+      const { error: auditErr } = await supabase.functions.invoke("log-audit", {
+        body: auditPayload,
       });
 
-      // Check if all docs approved for this provider
+      if (auditErr) throw auditErr;
+
+      // 3) Check if provider can be marked as approved
       await checkAndUpdateProviderStatus(selectedEvidence.profile_id);
 
       toast.success("✓ Document validé");
@@ -198,48 +219,53 @@ export default function Inbox() {
 
     setProcessing(true);
     try {
-      const reasonLabel = rejectionReasons.find(r => r.value === rejectionReason)?.label || rejectionReason;
-      const fullReason = rejectionComment 
-        ? `${reasonLabel}: ${rejectionComment}` 
+      const reasonLabel =
+        rejectionReasons.find((r) => r.value === rejectionReason)?.label ||
+        rejectionReason;
+      const fullReason = rejectionComment
+        ? `${reasonLabel}: ${rejectionComment}`
         : reasonLabel;
 
-      const { error } = await supabase
+      // 1) Update evidence status (DB)
+      const { error: updErr } = await supabase
         .from("evidences")
         .update({
           review_status: "rejected",
           status: "rejected",
-          reviewer_id: user.id,
-          reviewed_at: new Date().toISOString(),
           rejection_reason: fullReason,
         })
         .eq("id", selectedEvidence.id);
 
-      if (error) throw error;
+      if (updErr) throw updErr;
 
-      // Log action
-      await supabase.functions.invoke("log-audit", {
-        body: {
-          platform_id: selectedEvidence.platform_id,
-          user_id: user.id,
-          action: "evidence_rejected",
-          entity_type: "evidence",
-          entity_id: selectedEvidence.id,
-          new_data: { 
-            document_type: selectedEvidence.document_type,
-            reason: fullReason,
-            business_name: selectedEvidence.end_user_profiles.business_name,
-          },
+      // 2) Audit log (server-only)
+      const auditPayload = {
+        platform_id: selectedEvidence.platform_id,
+        action: "evidence_rejected",
+        entity_type: "evidence",
+        entity_id: selectedEvidence.id,
+        new_data: {
+          document_type: selectedEvidence.document_type,
+          reason: fullReason,
+          business_name: selectedEvidence.end_user_profiles.business_name,
+        },
+      };
+
+      const { error: auditErr } = await supabase.functions.invoke("log-audit", {
+        body: auditPayload,
       });
 
-      // Update provider status
+      if (auditErr) throw auditErr;
+
+      // 3) Provider status -> needs_docs
       await supabase
         .from("end_user_profiles")
         .update({ status: "needs_docs", updated_at: new Date().toISOString() })
         .eq("id", selectedEvidence.profile_id);
 
-      // TODO: Send rejection notification email
+      // TODO: Send rejection notification email (optionnel)
 
-      toast.success("Document rejeté - notification envoyée");
+      toast.success("Document rejeté");
       setShowRejectModal(false);
       setRejectionReason("");
       setRejectionComment("");
@@ -261,7 +287,9 @@ export default function Inbox() {
 
     if (!allEvidences || allEvidences.length === 0) return;
 
-    const allApproved = allEvidences.every(e => e.review_status === "approved");
+    const allApproved = allEvidences.every(
+      (e) => e.review_status === "approved",
+    );
 
     if (allApproved) {
       await supabase
@@ -271,23 +299,35 @@ export default function Inbox() {
     }
   };
 
-  const filteredEvidences = evidences.filter(e =>
-    e.end_user_profiles.business_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    e.document_name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredEvidences = evidences.filter(
+    (e) =>
+      e.end_user_profiles.business_name
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      e.document_name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   // Group by provider for better overview
-  const groupedByProvider = filteredEvidences.reduce((acc, evidence) => {
-    const key = evidence.profile_id;
-    if (!acc[key]) {
-      acc[key] = {
-        profile: evidence.end_user_profiles,
-        evidences: [],
-      };
-    }
-    acc[key].evidences.push(evidence);
-    return acc;
-  }, {} as Record<string, { profile: EvidenceWithProfile['end_user_profiles'], evidences: EvidenceWithProfile[] }>);
+  const groupedByProvider = filteredEvidences.reduce(
+    (acc, evidence) => {
+      const key = evidence.profile_id;
+      if (!acc[key]) {
+        acc[key] = {
+          profile: evidence.end_user_profiles,
+          evidences: [],
+        };
+      }
+      acc[key].evidences.push(evidence);
+      return acc;
+    },
+    {} as Record<
+      string,
+      {
+        profile: EvidenceWithProfile["end_user_profiles"];
+        evidences: EvidenceWithProfile[];
+      }
+    >,
+  );
 
   if (platformLoading || loading) {
     return (
@@ -310,19 +350,24 @@ export default function Inbox() {
               Inbox
             </h1>
             <p className="text-muted-foreground">
-              {evidences.length} document{evidences.length !== 1 ? "s" : ""} en attente de validation
+              {evidences.length} document{evidences.length !== 1 ? "s" : ""} en
+              attente de validation
             </p>
           </div>
+
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={handleRefresh}
               disabled={refreshing}
             >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+              />
               Actualiser
             </Button>
+
             <Link to="/app/review">
               <Button variant="outline" size="sm">
                 Tous les documents
@@ -353,112 +398,144 @@ export default function Inbox() {
               Inbox vide !
             </h3>
             <p className="text-muted-foreground mb-6">
-              Tous les documents ont été traités. Bravo ! 🎉
+              Tous les documents ont été traités.
             </p>
             <Link to="/app/review">
-              <Button variant="outline">
-                Voir l'historique
-              </Button>
+              <Button variant="outline">Voir l'historique</Button>
             </Link>
           </div>
         ) : (
           /* Providers with pending docs */
           <div className="space-y-4">
-            {Object.entries(groupedByProvider).map(([profileId, { profile, evidences: providerEvidences }]) => (
-              <div 
-                key={profileId} 
-                className="bg-card rounded-xl border border-border overflow-hidden"
-              >
-                {/* Provider Header */}
-                <div className="p-4 border-b border-border bg-secondary/30">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <User className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-foreground">{profile.business_name}</h3>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                          {profile.contact_email && (
-                            <span className="flex items-center gap-1">
-                              <Mail className="h-3 w-3" />
-                              {profile.contact_email}
-                            </span>
-                          )}
-                          {profile.contact_phone && (
-                            <span className="flex items-center gap-1">
-                              <Phone className="h-3 w-3" />
-                              {profile.contact_phone}
-                            </span>
-                          )}
+            {Object.entries(groupedByProvider).map(
+              ([profileId, { profile, evidences: providerEvidences }]) => (
+                <div
+                  key={profileId}
+                  className="bg-card rounded-xl border border-border overflow-hidden"
+                >
+                  {/* Provider Header */}
+                  <div className="p-4 border-b border-border bg-secondary/30">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <User className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-foreground">
+                            {profile.business_name}
+                          </h3>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            {profile.contact_email && (
+                              <span className="flex items-center gap-1">
+                                <Mail className="h-3 w-3" />
+                                {profile.contact_email}
+                              </span>
+                            )}
+                            {profile.contact_phone && (
+                              <span className="flex items-center gap-1">
+                                <Phone className="h-3 w-3" />
+                                {profile.contact_phone}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
+                      <Badge
+                        variant="outline"
+                        className="bg-warning/10 text-warning border-warning/30"
+                      >
+                        {providerEvidences.length} à traiter
+                      </Badge>
                     </div>
-                    <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
-                      {providerEvidences.length} à traiter
-                    </Badge>
+                  </div>
+
+                  {/* Documents List */}
+                  <div className="divide-y divide-border">
+                    {providerEvidences.map((evidence) => (
+                      <div
+                        key={evidence.id}
+                        className="flex items-center gap-4 p-4 hover:bg-secondary/50 transition-colors cursor-pointer"
+                        onClick={() => openEvidence(evidence)}
+                      >
+                        <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
+                          <FileText className="h-5 w-5 text-warning" />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground">
+                            {evidence.document_name}
+                          </p>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {new Date(evidence.created_at).toLocaleDateString(
+                                "fr-FR",
+                              )}
+                            </span>
+
+                            {evidence.extraction_confidence !== null && (
+                              <span
+                                className={`flex items-center gap-1 ${
+                                  evidence.extraction_confidence >= 0.7
+                                    ? "text-success"
+                                    : evidence.extraction_confidence >= 0.4
+                                      ? "text-warning"
+                                      : "text-destructive"
+                                }`}
+                              >
+                                <Zap className="h-3 w-3" />
+                                IA:{" "}
+                                {Math.round(
+                                  evidence.extraction_confidence * 100,
+                                )}
+                                %
+                              </span>
+                            )}
+
+                            {evidence.expires_at && (
+                              <span
+                                className={`flex items-center gap-1 ${
+                                  new Date(evidence.expires_at) < new Date()
+                                    ? "text-destructive"
+                                    : ""
+                                }`}
+                              >
+                                <Calendar className="h-3 w-3" />
+                                Exp:{" "}
+                                {new Date(
+                                  evidence.expires_at,
+                                ).toLocaleDateString("fr-FR")}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4" />
+                          Voir
+                        </Button>
+                      </div>
+                    ))}
                   </div>
                 </div>
-
-                {/* Documents List */}
-                <div className="divide-y divide-border">
-                  {providerEvidences.map((evidence) => (
-                    <div
-                      key={evidence.id}
-                      className="flex items-center gap-4 p-4 hover:bg-secondary/50 transition-colors cursor-pointer"
-                      onClick={() => openEvidence(evidence)}
-                    >
-                      <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
-                        <FileText className="h-5 w-5 text-warning" />
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-foreground">{evidence.document_name}</p>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {new Date(evidence.created_at).toLocaleDateString("fr-FR")}
-                          </span>
-                          {evidence.extraction_confidence !== null && (
-                            <span className={`flex items-center gap-1 ${
-                              evidence.extraction_confidence >= 0.7 ? "text-success" :
-                              evidence.extraction_confidence >= 0.4 ? "text-warning" : "text-destructive"
-                            }`}>
-                              <Zap className="h-3 w-3" />
-                              IA: {Math.round(evidence.extraction_confidence * 100)}%
-                            </span>
-                          )}
-                          {evidence.expires_at && (
-                            <span className={`flex items-center gap-1 ${
-                              new Date(evidence.expires_at) < new Date() ? "text-destructive" : ""
-                            }`}>
-                              <Calendar className="h-3 w-3" />
-                              Exp: {new Date(evidence.expires_at).toLocaleDateString("fr-FR")}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
-                        Voir
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+              ),
+            )}
           </div>
         )}
       </div>
 
       {/* Evidence Preview Modal */}
-      <Dialog open={!!selectedEvidence && !showRejectModal} onOpenChange={() => setSelectedEvidence(null)}>
+      <Dialog
+        open={!!selectedEvidence && !showRejectModal}
+        onOpenChange={() => setSelectedEvidence(null)}
+      >
         <DialogContent className="max-w-5xl max-h-[95vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between pr-8">
               <span>{selectedEvidence?.document_name}</span>
-              <Badge variant="outline">{selectedEvidence?.end_user_profiles.business_name}</Badge>
+              <Badge variant="outline">
+                {selectedEvidence?.end_user_profiles.business_name}
+              </Badge>
             </DialogTitle>
           </DialogHeader>
 
@@ -472,9 +549,9 @@ export default function Inbox() {
               ) : signedUrl ? (
                 <>
                   {selectedEvidence?.mime_type?.startsWith("image/") ? (
-                    <img 
-                      src={signedUrl} 
-                      alt={selectedEvidence?.document_name} 
+                    <img
+                      src={signedUrl}
+                      alt={selectedEvidence?.document_name}
                       className="max-w-full h-auto mx-auto rounded max-h-[500px] object-contain"
                     />
                   ) : (
@@ -485,9 +562,9 @@ export default function Inbox() {
                     />
                   )}
                   <div className="mt-2 text-center">
-                    <a 
-                      href={signedUrl} 
-                      target="_blank" 
+                    <a
+                      href={signedUrl}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs text-primary hover:underline inline-flex items-center gap-1"
                     >
@@ -508,32 +585,55 @@ export default function Inbox() {
                     <Zap className="h-4 w-4 text-accent" />
                     Extraction IA
                     <Badge variant="outline" className="ml-auto text-xs">
-                      {Math.round((selectedEvidence.extraction_confidence || 0) * 100)}%
+                      {Math.round(
+                        (selectedEvidence.extraction_confidence || 0) * 100,
+                      )}
+                      %
                     </Badge>
                   </h4>
+
                   <div className="space-y-2 text-sm">
-                    {selectedEvidence.ai_analysis.doc_type && (
+                    {selectedEvidence.ai_analysis?.doc_type && (
                       <div>
-                        <span className="text-muted-foreground">Type détecté:</span>
-                        <p className="font-medium text-foreground">{selectedEvidence.ai_analysis.doc_type}</p>
+                        <span className="text-muted-foreground">
+                          Type détecté:
+                        </span>
+                        <p className="font-medium text-foreground">
+                          {selectedEvidence.ai_analysis.doc_type}
+                        </p>
                       </div>
                     )}
-                    {selectedEvidence.ai_analysis.name_or_company && (
+
+                    {selectedEvidence.ai_analysis?.name_or_company && (
                       <div>
-                        <span className="text-muted-foreground">Nom/Société:</span>
-                        <p className="font-medium text-foreground">{selectedEvidence.ai_analysis.name_or_company}</p>
+                        <span className="text-muted-foreground">
+                          Nom/Société:
+                        </span>
+                        <p className="font-medium text-foreground">
+                          {selectedEvidence.ai_analysis.name_or_company}
+                        </p>
                       </div>
                     )}
-                    {selectedEvidence.ai_analysis.siret_siren && (
+
+                    {selectedEvidence.ai_analysis?.siret_siren && (
                       <div>
-                        <span className="text-muted-foreground">SIRET/SIREN:</span>
-                        <p className="font-medium text-foreground font-mono">{selectedEvidence.ai_analysis.siret_siren}</p>
+                        <span className="text-muted-foreground">
+                          SIRET/SIREN:
+                        </span>
+                        <p className="font-medium text-foreground font-mono">
+                          {selectedEvidence.ai_analysis.siret_siren}
+                        </p>
                       </div>
                     )}
-                    {selectedEvidence.ai_analysis.expiry_date && (
+
+                    {selectedEvidence.ai_analysis?.expiry_date && (
                       <div>
-                        <span className="text-muted-foreground">Date d'expiration:</span>
-                        <p className="font-medium text-foreground">{selectedEvidence.ai_analysis.expiry_date}</p>
+                        <span className="text-muted-foreground">
+                          Date d'expiration:
+                        </span>
+                        <p className="font-medium text-foreground">
+                          {selectedEvidence.ai_analysis.expiry_date}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -542,33 +642,49 @@ export default function Inbox() {
 
               {/* Document Info */}
               <div className="bg-card border border-border rounded-lg p-4">
-                <h4 className="font-medium text-foreground mb-3">Informations</h4>
+                <h4 className="font-medium text-foreground mb-3">
+                  Informations
+                </h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Type</span>
-                    <span className="font-medium">{selectedEvidence?.document_type}</span>
+                    <span className="font-medium">
+                      {selectedEvidence?.document_type}
+                    </span>
                   </div>
+
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Soumis le</span>
                     <span className="font-medium">
-                      {selectedEvidence && new Date(selectedEvidence.created_at).toLocaleDateString("fr-FR")}
+                      {selectedEvidence &&
+                        new Date(
+                          selectedEvidence.created_at,
+                        ).toLocaleDateString("fr-FR")}
                     </span>
                   </div>
+
                   {selectedEvidence?.issued_at && (
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Date émission</span>
+                      <span className="text-muted-foreground">
+                        Date émission
+                      </span>
                       <span className="font-medium">
-                        {new Date(selectedEvidence.issued_at).toLocaleDateString("fr-FR")}
+                        {new Date(
+                          selectedEvidence.issued_at,
+                        ).toLocaleDateString("fr-FR")}
                       </span>
                     </div>
                   )}
+
                   {selectedEvidence?.expires_at && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Expiration</span>
-                      <span className={`font-medium ${
-                        new Date(selectedEvidence.expires_at) < new Date() ? "text-destructive" : ""
-                      }`}>
-                        {new Date(selectedEvidence.expires_at).toLocaleDateString("fr-FR")}
+                      <span
+                        className={`font-medium ${new Date(selectedEvidence.expires_at) < new Date() ? "text-destructive" : ""}`}
+                      >
+                        {new Date(
+                          selectedEvidence.expires_at,
+                        ).toLocaleDateString("fr-FR")}
                       </span>
                     </div>
                   )}
@@ -577,11 +693,17 @@ export default function Inbox() {
 
               {/* Provider Info */}
               <div className="bg-card border border-border rounded-lg p-4">
-                <h4 className="font-medium text-foreground mb-3">Prestataire</h4>
+                <h4 className="font-medium text-foreground mb-3">
+                  Prestataire
+                </h4>
                 <div className="space-y-2 text-sm">
-                  <p className="font-medium">{selectedEvidence?.end_user_profiles.business_name}</p>
+                  <p className="font-medium">
+                    {selectedEvidence?.end_user_profiles.business_name}
+                  </p>
                   {selectedEvidence?.end_user_profiles.contact_email && (
-                    <p className="text-muted-foreground">{selectedEvidence.end_user_profiles.contact_email}</p>
+                    <p className="text-muted-foreground">
+                      {selectedEvidence.end_user_profiles.contact_email}
+                    </p>
                   )}
                 </div>
               </div>
@@ -599,6 +721,7 @@ export default function Inbox() {
               <ThumbsDown className="h-4 w-4" />
               Rejeter
             </Button>
+
             <Button
               className="flex-1 bg-success hover:bg-success/90"
               onClick={handleApprove}
@@ -632,7 +755,10 @@ export default function Inbox() {
               <label className="block text-sm font-medium text-foreground mb-2">
                 Motif du rejet *
               </label>
-              <Select value={rejectionReason} onValueChange={setRejectionReason}>
+              <Select
+                value={rejectionReason}
+                onValueChange={setRejectionReason}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionnez un motif" />
                 </SelectTrigger>
@@ -668,6 +794,7 @@ export default function Inbox() {
             >
               Annuler
             </Button>
+
             <Button
               variant="destructive"
               className="flex-1"

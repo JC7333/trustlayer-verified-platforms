@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -15,16 +16,16 @@ const RATE_WINDOW = 60000; // 1 minute in ms
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
   const entry = rateLimitMap.get(ip);
-  
+
   if (!entry || now > entry.resetAt) {
     rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW });
     return false;
   }
-  
+
   if (entry.count >= RATE_LIMIT) {
     return true;
   }
-  
+
   entry.count++;
   return false;
 }
@@ -35,16 +36,20 @@ interface ValidateMagicLinkRequest {
 
 serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
-  return new Response(null, { status: 204, headers: corsHeaders });
-}
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
 
   try {
     // Rate limiting
-    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
+    const clientIp =
+      req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
     if (isRateLimited(clientIp)) {
       return new Response(
         JSON.stringify({ error: "Too many requests. Please try again later." }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -56,10 +61,10 @@ serve(async (req: Request): Promise<Response> => {
     const { token } = body;
 
     if (!token || token.length !== 64) {
-      return new Response(
-        JSON.stringify({ error: "Invalid token format" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Invalid token format" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Hash the provided token
@@ -67,12 +72,15 @@ serve(async (req: Request): Promise<Response> => {
     const data = encoder.encode(token);
     const hashBuffer = await crypto.subtle.digest("SHA-256", data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const tokenHash = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+    const tokenHash = hashArray
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
 
     // Look up the magic link
     const { data: magicLink, error: lookupError } = await supabase
       .from("magic_links")
-      .select(`
+      .select(
+        `
         *,
         end_user_profiles!inner(
           id,
@@ -88,7 +96,8 @@ serve(async (req: Request): Promise<Response> => {
             primary_color
           )
         )
-      `)
+      `,
+      )
       .eq("token_hash", tokenHash)
       .single();
 
@@ -96,7 +105,10 @@ serve(async (req: Request): Promise<Response> => {
       console.log("Magic link not found for hash");
       return new Response(
         JSON.stringify({ error: "Invalid or expired link" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -104,15 +116,24 @@ serve(async (req: Request): Promise<Response> => {
     if (magicLink.revoked_at) {
       return new Response(
         JSON.stringify({ error: "This link has been revoked" }),
-        { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 410,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     // Check if expired
     if (new Date(magicLink.expires_at) < new Date()) {
       return new Response(
-        JSON.stringify({ error: "This link has expired. Please contact your platform administrator for a new link." }),
-        { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error:
+            "This link has expired. Please contact your platform administrator for a new link.",
+        }),
+        {
+          status: 410,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -127,7 +148,6 @@ serve(async (req: Request): Promise<Response> => {
     // Get required documents for this platform's rule pack
     const endUser = magicLink.end_user_profiles;
     const platform = endUser.platforms;
-
 
     // 1) Try: latest rule pack for this platform
     const { data: platformPack } = await supabase
@@ -154,7 +174,10 @@ serve(async (req: Request): Promise<Response> => {
     if (!rulesPackageId) {
       return new Response(
         JSON.stringify({ error: "No rule pack configured for this platform" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -192,13 +215,16 @@ serve(async (req: Request): Promise<Response> => {
         existing_evidences: existingEvidences || [],
         magic_link_id: magicLink.id,
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   } catch (error) {
     console.error("Error in validate-magic-link:", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

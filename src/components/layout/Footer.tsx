@@ -42,14 +42,17 @@ export function Footer() {
               <span className="text-xl font-bold">TrustLayer</span>
             </Link>
             <p className="text-sm text-primary-foreground/70 leading-relaxed">
-              Orchestration des vérifications et gestion des preuves pour plateformes B2B et marketplaces.
+              Orchestration des vérifications et gestion des preuves pour
+              plateformes B2B et marketplaces.
             </p>
           </div>
 
           {/* Links */}
           {Object.entries(footerLinks).map(([category, links]) => (
             <div key={category}>
-              <h4 className="font-semibold mb-4 text-primary-foreground">{category}</h4>
+              <h4 className="font-semibold mb-4 text-primary-foreground">
+                {category}
+              </h4>
               <ul className="space-y-2">
                 {links.map((link) => (
                   <li key={link.href}>
@@ -71,9 +74,15 @@ export function Footer() {
             © {new Date().getFullYear()} TrustLayer. Tous droits réservés.
           </p>
           <div className="flex items-center gap-6">
-            <span className="text-xs text-primary-foreground/40">SOC 2 Type II</span>
-            <span className="text-xs text-primary-foreground/40">Conforme RGPD</span>
-            <span className="text-xs text-primary-foreground/40">Hébergé en France</span>
+            <span className="text-xs text-primary-foreground/40">
+              SOC 2 Type II
+            </span>
+            <span className="text-xs text-primary-foreground/40">
+              Conforme RGPD
+            </span>
+            <span className="text-xs text-primary-foreground/40">
+              Hébergé en France
+            </span>
           </div>
         </div>
       </div>

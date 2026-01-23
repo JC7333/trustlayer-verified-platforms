@@ -4,8 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePlatform } from "@/hooks/usePlatform";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Search, 
+import {
+  Search,
   Filter,
   CheckCircle2,
   XCircle,
@@ -15,7 +15,7 @@ import {
   Loader2,
   AlertTriangle,
   Send,
-  Calendar
+  Calendar,
 } from "lucide-react";
 import {
   Select,
@@ -94,14 +94,15 @@ export default function Notifications() {
 
       if (error) throw error;
       // Map data to include attempts with default value
-      const mappedData: Notification[] = (data || []).map(n => ({
+      const mappedData: Notification[] = (data || []).map((n) => ({
         ...n,
         attempts: (n as unknown as { attempts?: number }).attempts ?? 0,
         metadata: n.metadata as Record<string, unknown> | null,
       }));
       setNotifications(mappedData);
     } catch (err) {
-      if (import.meta.env.DEV) console.error("Error fetching notifications:", err);
+      if (import.meta.env.DEV)
+        console.error("Error fetching notifications:", err);
       toast.error("Erreur lors du chargement");
     } finally {
       setLoading(false);
@@ -113,7 +114,7 @@ export default function Notifications() {
     try {
       const { error } = await supabase
         .from("notifications_queue")
-        .update({ 
+        .update({
           status: "pending",
           error_message: null,
         })
@@ -134,14 +135,20 @@ export default function Notifications() {
     switch (status) {
       case "sent":
         return (
-          <Badge variant="outline" className="bg-success/10 text-success border-success/20">
+          <Badge
+            variant="outline"
+            className="bg-success/10 text-success border-success/20"
+          >
             <CheckCircle2 className="h-3 w-3 mr-1" />
             Envoyé
           </Badge>
         );
       case "failed":
         return (
-          <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
+          <Badge
+            variant="outline"
+            className="bg-destructive/10 text-destructive border-destructive/20"
+          >
             <XCircle className="h-3 w-3 mr-1" />
             Échec
           </Badge>
@@ -149,7 +156,10 @@ export default function Notifications() {
       case "pending":
       default:
         return (
-          <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
+          <Badge
+            variant="outline"
+            className="bg-warning/10 text-warning border-warning/20"
+          >
             <Clock className="h-3 w-3 mr-1" />
             En attente
           </Badge>
@@ -157,16 +167,17 @@ export default function Notifications() {
     }
   };
 
-  const filteredNotifications = notifications.filter(n =>
-    (n.recipient_email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     n.subject?.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredNotifications = notifications.filter(
+    (n) =>
+      n.recipient_email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      n.subject?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const stats = {
     total: notifications.length,
-    sent: notifications.filter(n => n.status === "sent").length,
-    pending: notifications.filter(n => n.status === "pending").length,
-    failed: notifications.filter(n => n.status === "failed").length,
+    sent: notifications.filter((n) => n.status === "sent").length,
+    pending: notifications.filter((n) => n.status === "pending").length,
+    failed: notifications.filter((n) => n.status === "failed").length,
   };
 
   if (platformLoading || loading) {
@@ -198,7 +209,9 @@ export default function Notifications() {
                 <Mail className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {stats.total}
+                </p>
                 <p className="text-sm text-muted-foreground">Total</p>
               </div>
             </div>
@@ -209,7 +222,9 @@ export default function Notifications() {
                 <CheckCircle2 className="h-5 w-5 text-success" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{stats.sent}</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {stats.sent}
+                </p>
                 <p className="text-sm text-muted-foreground">Envoyés</p>
               </div>
             </div>
@@ -220,7 +235,9 @@ export default function Notifications() {
                 <Clock className="h-5 w-5 text-warning" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{stats.pending}</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {stats.pending}
+                </p>
                 <p className="text-sm text-muted-foreground">En attente</p>
               </div>
             </div>
@@ -231,7 +248,9 @@ export default function Notifications() {
                 <AlertTriangle className="h-5 w-5 text-destructive" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{stats.failed}</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {stats.failed}
+                </p>
                 <p className="text-sm text-muted-foreground">Échecs</p>
               </div>
             </div>
@@ -255,15 +274,14 @@ export default function Notifications() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {statusFilters.map(f => (
-                <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+              {statusFilters.map((f) => (
+                <SelectItem key={f.value} value={f.value}>
+                  {f.label}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Button 
-            variant="outline" 
-            onClick={() => fetchNotifications()}
-          >
+          <Button variant="outline" onClick={() => fetchNotifications()}>
             <RefreshCw className="h-4 w-4" />
             <span className="hidden sm:inline ml-1">Actualiser</span>
           </Button>
@@ -273,7 +291,9 @@ export default function Notifications() {
         {filteredNotifications.length === 0 ? (
           <div className="text-center py-12 bg-card rounded-xl border border-border">
             <Mail className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-semibold text-foreground mb-2">Aucune notification</h3>
+            <h3 className="font-semibold text-foreground mb-2">
+              Aucune notification
+            </h3>
             <p className="text-muted-foreground text-sm">
               Les emails envoyés apparaîtront ici
             </p>
@@ -286,20 +306,23 @@ export default function Notifications() {
                 className="bg-card rounded-xl border border-border p-4 hover:border-primary/30 transition-colors"
               >
                 <div className="flex items-start gap-4">
-                  <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${
-                    notif.status === "sent" 
-                      ? "bg-success/10 text-success"
-                      : notif.status === "failed"
-                      ? "bg-destructive/10 text-destructive"
-                      : "bg-warning/10 text-warning"
-                  }`}>
+                  <div
+                    className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${
+                      notif.status === "sent"
+                        ? "bg-success/10 text-success"
+                        : notif.status === "failed"
+                          ? "bg-destructive/10 text-destructive"
+                          : "bg-warning/10 text-warning"
+                    }`}
+                  >
                     <Send className="h-5 w-5" />
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="font-medium text-foreground">
-                        {typeLabels[notif.notification_type] || notif.notification_type}
+                        {typeLabels[notif.notification_type] ||
+                          notif.notification_type}
                       </span>
                       {getStatusBadge(notif.status)}
                     </div>
@@ -325,7 +348,8 @@ export default function Notifications() {
                       {notif.sent_at && (
                         <span className="flex items-center gap-1">
                           <CheckCircle2 className="h-3 w-3" />
-                          Envoyé: {new Date(notif.sent_at).toLocaleString("fr-FR")}
+                          Envoyé:{" "}
+                          {new Date(notif.sent_at).toLocaleString("fr-FR")}
                         </span>
                       )}
                       {(notif.attempts ?? 0) > 0 && (
@@ -335,8 +359,8 @@ export default function Notifications() {
                   </div>
 
                   {notif.status === "failed" && (
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => handleRetry(notif)}
                       disabled={retrying === notif.id}

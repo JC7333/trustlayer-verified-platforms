@@ -25,7 +25,9 @@ export function MarketingNav() {
             <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-accent shadow-md group-hover:shadow-glow transition-shadow duration-300">
               <Shield className="h-5 w-5 text-accent-foreground" />
             </div>
-            <span className="text-xl font-bold text-foreground">TrustLayer</span>
+            <span className="text-xl font-bold text-foreground">
+              TrustLayer
+            </span>
           </Link>
 
           {/* Desktop Nav */}
@@ -38,7 +40,7 @@ export function MarketingNav() {
                   "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
                   location.pathname === item.href
                     ? "text-accent bg-accent/10"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary",
                 )}
               >
                 {item.label}
@@ -70,7 +72,11 @@ export function MarketingNav() {
             className="md:hidden p-2 rounded-lg hover:bg-secondary"
             onClick={() => setMobileOpen(!mobileOpen)}
           >
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {mobileOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
           </button>
         </div>
       </div>
@@ -91,10 +97,14 @@ export function MarketingNav() {
             ))}
             <div className="pt-4 border-t border-border flex flex-col gap-2">
               <Link to="/app" onClick={() => setMobileOpen(false)}>
-                <Button variant="outline" className="w-full">Connexion</Button>
+                <Button variant="outline" className="w-full">
+                  Connexion
+                </Button>
               </Link>
               <Link to="/demo" onClick={() => setMobileOpen(false)}>
-                <Button variant="accent" className="w-full">Réserver une démo</Button>
+                <Button variant="accent" className="w-full">
+                  Réserver une démo
+                </Button>
               </Link>
             </div>
           </div>

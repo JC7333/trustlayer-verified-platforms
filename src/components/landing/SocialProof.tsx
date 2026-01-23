@@ -2,21 +2,24 @@ import { Quote } from "lucide-react";
 
 const testimonials = [
   {
-    quote: "TrustLayer a divisé par 3 notre temps de vérification des prestataires. L'IA détecte les documents invalides avant même que nos équipes les examinent.",
+    quote:
+      "TrustLayer a divisé par 3 notre temps de vérification des prestataires. L'IA détecte les documents invalides avant même que nos équipes les examinent.",
     author: "Marie Dupont",
     role: "Directrice Ops",
     company: "MediConnect",
     avatar: "MD",
   },
   {
-    quote: "Enfin une solution qui comprend les besoins des marketplaces B2B. Le white-label nous permet de garder une expérience 100% à notre marque.",
+    quote:
+      "Enfin une solution qui comprend les besoins des marketplaces B2B. Le white-label nous permet de garder une expérience 100% à notre marque.",
     author: "Thomas Bernard",
     role: "CTO",
     company: "ProServices",
     avatar: "TB",
   },
   {
-    quote: "Les badges de confiance ont augmenté de 40% le taux de conversion sur notre marketplace. Les acheteurs font confiance aux profils vérifiés.",
+    quote:
+      "Les badges de confiance ont augmenté de 40% le taux de conversion sur notre marketplace. Les acheteurs font confiance aux profils vérifiés.",
     author: "Sophie Martin",
     role: "Product Manager",
     company: "IndustriHub",
@@ -25,7 +28,12 @@ const testimonials = [
 ];
 
 const logos = [
-  "MediConnect", "ProServices", "IndustriHub", "TechSupply", "HealthFirst", "BuildPro"
+  "MediConnect",
+  "ProServices",
+  "IndustriHub",
+  "TechSupply",
+  "HealthFirst",
+  "BuildPro",
 ];
 
 export function SocialProof() {
@@ -39,8 +47,8 @@ export function SocialProof() {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
             {logos.map((logo) => (
-              <div 
-                key={logo} 
+              <div
+                key={logo}
                 className="text-lg font-bold text-muted-foreground/40 hover:text-muted-foreground transition-colors"
               >
                 {logo}
@@ -53,7 +61,7 @@ export function SocialProof() {
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-3 gap-8">
             {testimonials.map((testimonial) => (
-              <div 
+              <div
                 key={testimonial.author}
                 className="bg-card rounded-2xl p-8 border border-border hover:border-accent/30 hover:shadow-lg transition-all duration-300"
               >
@@ -66,7 +74,9 @@ export function SocialProof() {
                     {testimonial.avatar}
                   </div>
                   <div>
-                    <p className="font-semibold text-foreground">{testimonial.author}</p>
+                    <p className="font-semibold text-foreground">
+                      {testimonial.author}
+                    </p>
                     <p className="text-sm text-muted-foreground">
                       {testimonial.role}, {testimonial.company}
                     </p>

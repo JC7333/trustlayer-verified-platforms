@@ -94,7 +94,11 @@ export default function Auth() {
       }
 
       // SIGN UP FLOW (fixed)
-      const { error } = await signUp(formData.email, formData.password, formData.fullName);
+      const { error } = await signUp(
+        formData.email,
+        formData.password,
+        formData.fullName,
+      );
 
       if (error) {
         if (error.message.includes("already registered")) {
@@ -113,7 +117,9 @@ export default function Auth() {
       setErrors({});
       setSearchParams({ check_email: "1" });
 
-      toast.success("Compte créé. Vérifiez votre email pour confirmer l'inscription.");
+      toast.success(
+        "Compte créé. Vérifiez votre email pour confirmer l'inscription.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -137,11 +143,17 @@ export default function Auth() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl gradient-accent shadow-glow">
               <Shield className="h-6 w-6 text-accent-foreground" />
             </div>
-            <span className="text-2xl font-bold text-foreground">TrustLayer</span>
+            <span className="text-2xl font-bold text-foreground">
+              TrustLayer
+            </span>
           </div>
 
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            {checkEmail ? "Vérifiez votre email" : isLogin ? "Bon retour" : "Créer un compte"}
+            {checkEmail
+              ? "Vérifiez votre email"
+              : isLogin
+                ? "Bon retour"
+                : "Créer un compte"}
           </h1>
 
           <p className="text-muted-foreground mb-8">
@@ -161,13 +173,19 @@ export default function Auth() {
                     <Mail className="h-5 w-5 text-foreground" />
                   </div>
                   <div className="space-y-1">
-                    <p className="font-medium text-foreground">Confirmation requise</p>
+                    <p className="font-medium text-foreground">
+                      Confirmation requise
+                    </p>
                     <p className="text-sm text-muted-foreground">
-                      Cliquez sur le lien reçu par email pour activer votre compte.
+                      Cliquez sur le lien reçu par email pour activer votre
+                      compte.
                     </p>
                     {pendingEmail ? (
                       <p className="text-sm text-muted-foreground">
-                        Email : <span className="font-medium text-foreground">{pendingEmail}</span>
+                        Email :{" "}
+                        <span className="font-medium text-foreground">
+                          {pendingEmail}
+                        </span>
                       </p>
                     ) : null}
                   </div>
@@ -216,7 +234,9 @@ export default function Auth() {
                       />
                     </div>
                     {errors.fullName && (
-                      <p className="text-sm text-destructive mt-1">{errors.fullName}</p>
+                      <p className="text-sm text-destructive mt-1">
+                        {errors.fullName}
+                      </p>
                     )}
                   </div>
                 )}
@@ -230,13 +250,17 @@ export default function Auth() {
                     <Input
                       type="email"
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
                       placeholder="vous@entreprise.com"
                       className="pl-11"
                     />
                   </div>
                   {errors.email && (
-                    <p className="text-sm text-destructive mt-1">{errors.email}</p>
+                    <p className="text-sm text-destructive mt-1">
+                      {errors.email}
+                    </p>
                   )}
                 </div>
 
@@ -257,7 +281,9 @@ export default function Auth() {
                     />
                   </div>
                   {errors.password && (
-                    <p className="text-sm text-destructive mt-1">{errors.password}</p>
+                    <p className="text-sm text-destructive mt-1">
+                      {errors.password}
+                    </p>
                   )}
                 </div>
 
@@ -312,8 +338,12 @@ export default function Auth() {
                   { label: "Uptime", value: "99.9%" },
                 ].map((stat) => (
                   <div key={stat.label} className="text-center">
-                    <p className="text-2xl font-bold text-primary-foreground">{stat.value}</p>
-                    <p className="text-xs text-primary-foreground/60">{stat.label}</p>
+                    <p className="text-2xl font-bold text-primary-foreground">
+                      {stat.value}
+                    </p>
+                    <p className="text-xs text-primary-foreground/60">
+                      {stat.label}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -321,7 +351,9 @@ export default function Auth() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-badge">
                   <Shield className="h-4 w-4" />
                 </div>
-                <span className="text-primary-foreground font-medium">Prestataire Vérifié</span>
+                <span className="text-primary-foreground font-medium">
+                  Prestataire Vérifié
+                </span>
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-success text-success-foreground text-xs">
                   ✓
                 </span>
@@ -333,8 +365,8 @@ export default function Auth() {
             Automatisez 90% de vos vérifications
           </h2>
           <p className="text-primary-foreground/70">
-            Rejoignez 500+ plateformes qui font confiance à TrustLayer pour sécuriser leur réseau
-            de prestataires.
+            Rejoignez 500+ plateformes qui font confiance à TrustLayer pour
+            sécuriser leur réseau de prestataires.
           </p>
         </div>
       </div>

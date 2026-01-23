@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface CreateMagicLinkRequest {
@@ -28,18 +29,24 @@ serve(async (req: Request): Promise<Response> => {
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     // Verify the user
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
     if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Invalid token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const body: CreateMagicLinkRequest = await req.json();
@@ -48,7 +55,10 @@ serve(async (req: Request): Promise<Response> => {
     if (!platform_id || !end_user_id) {
       return new Response(
         JSON.stringify({ error: "Missing platform_id or end_user_id" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -56,19 +66,24 @@ serve(async (req: Request): Promise<Response> => {
     const { data: hasRole } = await supabase.rpc("has_role", {
       _user_id: user.id,
       _platform_id: platform_id,
-      _role: "platform_admin"
+      _role: "platform_admin",
     });
 
     const { data: hasOwnerRole } = await supabase.rpc("has_role", {
       _user_id: user.id,
       _platform_id: platform_id,
-      _role: "platform_owner"
+      _role: "platform_owner",
     });
 
     if (!hasRole && !hasOwnerRole) {
       return new Response(
-        JSON.stringify({ error: "Unauthorized - admin or owner role required" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: "Unauthorized - admin or owner role required",
+        }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -76,7 +91,7 @@ serve(async (req: Request): Promise<Response> => {
     const tokenBytes = new Uint8Array(32);
     crypto.getRandomValues(tokenBytes);
     const rawToken = Array.from(tokenBytes)
-      .map(b => b.toString(16).padStart(2, "0"))
+      .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
 
     // Hash the token for storage (using SHA-256)
@@ -84,7 +99,9 @@ serve(async (req: Request): Promise<Response> => {
     const data = encoder.encode(rawToken);
     const hashBuffer = await crypto.subtle.digest("SHA-256", data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const tokenHash = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+    const tokenHash = hashArray
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
 
     // Calculate expiration
     const expiresAt = new Date();
@@ -115,7 +132,10 @@ serve(async (req: Request): Promise<Response> => {
       console.error("Error creating magic link:", insertError);
       return new Response(
         JSON.stringify({ error: "Failed to create magic link" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -137,10 +157,13 @@ serve(async (req: Request): Promise<Response> => {
     });
 
     // Build the magic link URL
-    const appUrl = Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", "") || "";
+    const appUrl =
+      Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", "") || "";
     const magicLinkUrl = `${req.headers.get("origin") || "https://trustlayer.app"}/u/${rawToken}`;
 
-    console.log(`Magic link created for end_user ${end_user_id}, expires ${expiresAt.toISOString()}`);
+    console.log(
+      `Magic link created for end_user ${end_user_id}, expires ${expiresAt.toISOString()}`,
+    );
 
     return new Response(
       JSON.stringify({
@@ -149,13 +172,16 @@ serve(async (req: Request): Promise<Response> => {
         expires_at: expiresAt.toISOString(),
         id: magicLink.id,
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   } catch (error) {
     console.error("Error in create-magic-link:", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

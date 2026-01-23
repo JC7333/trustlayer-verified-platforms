@@ -42,7 +42,7 @@ const App = () => (
             <Route path="/contact" element={<Contact />} />
             <Route path="/demo" element={<Demo />} />
             <Route path="/auth" element={<Auth />} />
-            
+
             {/* App Routes */}
             <Route path="/app" element={<Dashboard />} />
             <Route path="/app/dashboard" element={<Dashboard />} />
@@ -53,10 +53,10 @@ const App = () => (
             <Route path="/app/notifications" element={<Notifications />} />
             <Route path="/app/expirations" element={<Expirations />} />
             <Route path="/app/admin/email-test" element={<AdminEmailTest />} />
-            
+
             {/* Public Provider Portal */}
             <Route path="/u/:token" element={<ProviderUpload />} />
-            
+
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

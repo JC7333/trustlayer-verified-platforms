@@ -2,7 +2,13 @@ import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Mail, Loader2, CheckCircle2, XCircle, Send } from "lucide-react";
@@ -24,27 +30,30 @@ export default function AdminEmailTest() {
   const [results, setResults] = useState<TestResult[]>([]);
 
   const addResult = (result: TestResult) => {
-    setResults(prev => [result, ...prev].slice(0, 10));
+    setResults((prev) => [result, ...prev].slice(0, 10));
   };
 
   const testDemoEmail = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("send-demo-email", {
-        body: {
-          name: "Test User",
-          email: testEmail || user?.email || "test@example.com",
-          company: "Test Company",
-          vertical: "logistique",
-          volume: "100-500",
+      const { data, error } = await supabase.functions.invoke(
+        "send-demo-email",
+        {
+          body: {
+            name: "Test User",
+            email: testEmail || user?.email || "test@example.com",
+            company: "Test Company",
+            vertical: "logistique",
+            volume: "100-500",
+          },
         },
-      });
+      );
 
       if (error) throw error;
 
       addResult({
         success: true,
-        message: `Email de démo envoyé. Message ID: ${data?.message_id || 'N/A'}`,
+        message: `Email de démo envoyé. Message ID: ${data?.message_id || "N/A"}`,
         timestamp: new Date(),
         type: "Demo Email",
       });
@@ -67,17 +76,20 @@ export default function AdminEmailTest() {
     setLoading(true);
     try {
       // This will test the send-notification function
-      const { data, error } = await supabase.functions.invoke("send-notification", {
-        body: {
-          notification_id: "test-" + Date.now(),
-          notification_type: type,
-          recipient_email: testEmail || user?.email,
-          subject: `[TEST] Notification ${type}`,
-          body: "Ceci est un email de test pour vérifier le bon fonctionnement du système.",
-          platform_name: "Preuvio Test",
-          end_user_name: "Prestataire Test",
+      const { data, error } = await supabase.functions.invoke(
+        "send-notification",
+        {
+          body: {
+            notification_id: "test-" + Date.now(),
+            notification_type: type,
+            recipient_email: testEmail || user?.email,
+            subject: `[TEST] Notification ${type}`,
+            body: "Ceci est un email de test pour vérifier le bon fonctionnement du système.",
+            platform_name: "Preuvio Test",
+            end_user_name: "Prestataire Test",
+          },
         },
-      });
+      );
 
       if (error) throw error;
 
@@ -96,7 +108,7 @@ export default function AdminEmailTest() {
         timestamp: new Date(),
         type: `Notification: ${type}`,
       });
-      toast.error("Erreur: " + message)
+      toast.error("Erreur: " + message);
     } finally {
       setLoading(false);
     }
@@ -106,7 +118,9 @@ export default function AdminEmailTest() {
     <AppLayout>
       <div className="space-y-6 max-w-4xl">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Test des emails</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            Test des emails
+          </h1>
           <p className="text-muted-foreground">
             Page admin pour tester l'envoi d'emails via Resend
           </p>
@@ -120,7 +134,8 @@ export default function AdminEmailTest() {
               Configuration du test
             </CardTitle>
             <CardDescription>
-              L'email sera envoyé à l'adresse configurée dans DEMO_NOTIFY_TO_EMAIL
+              L'email sera envoyé à l'adresse configurée dans
+              DEMO_NOTIFY_TO_EMAIL
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -145,14 +160,16 @@ export default function AdminEmailTest() {
         <div className="grid sm:grid-cols-2 gap-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Email de demande de démo</CardTitle>
+              <CardTitle className="text-lg">
+                Email de demande de démo
+              </CardTitle>
               <CardDescription>
                 Simule une soumission du formulaire /demo
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button 
-                onClick={testDemoEmail} 
+              <Button
+                onClick={testDemoEmail}
                 disabled={loading}
                 className="w-full"
               >
@@ -174,8 +191,8 @@ export default function AdminEmailTest() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button 
-                onClick={() => testNotificationEmail("expiry_reminder_7")} 
+              <Button
+                onClick={() => testNotificationEmail("expiry_reminder_7")}
                 disabled={loading}
                 variant="outline"
                 className="w-full"
@@ -200,11 +217,11 @@ export default function AdminEmailTest() {
             <CardContent>
               <div className="space-y-3">
                 {results.map((result, index) => (
-                  <div 
+                  <div
                     key={index}
                     className={`flex items-start gap-3 p-3 rounded-lg border ${
-                      result.success 
-                        ? "border-success/30 bg-success/5" 
+                      result.success
+                        ? "border-success/30 bg-success/5"
                         : "border-destructive/30 bg-destructive/5"
                     }`}
                   >
@@ -215,7 +232,9 @@ export default function AdminEmailTest() {
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm">{result.type}</p>
-                      <p className="text-sm text-muted-foreground">{result.message}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {result.message}
+                      </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {result.timestamp.toLocaleTimeString("fr-FR")}
                       </p>
@@ -233,12 +252,23 @@ export default function AdminEmailTest() {
             <CardTitle>Troubleshooting</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
-            <p>• <strong>RESEND_API_KEY</strong> : Clé API Resend (à configurer dans les secrets)</p>
-            <p>• <strong>DEMO_NOTIFY_TO_EMAIL</strong> : Email qui recevra les demandes de démo</p>
-            <p>• <strong>APP_PUBLIC_URL</strong> : URL publique de l'application</p>
+            <p>
+              • <strong>RESEND_API_KEY</strong> : Clé API Resend (à configurer
+              dans les secrets)
+            </p>
+            <p>
+              • <strong>DEMO_NOTIFY_TO_EMAIL</strong> : Email qui recevra les
+              demandes de démo
+            </p>
+            <p>
+              • <strong>APP_PUBLIC_URL</strong> : URL publique de l'application
+            </p>
             <p className="pt-2">
-              Si le domaine n'est pas vérifié sur Resend, les emails seront envoyés depuis 
-              <code className="bg-secondary px-1 rounded ml-1">onboarding@resend.dev</code>
+              Si le domaine n'est pas vérifié sur Resend, les emails seront
+              envoyés depuis
+              <code className="bg-secondary px-1 rounded ml-1">
+                onboarding@resend.dev
+              </code>
             </p>
           </CardContent>
         </Card>

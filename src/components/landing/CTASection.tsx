@@ -21,8 +21,8 @@ export function CTASection() {
           </h2>
 
           <p className="text-lg sm:text-xl text-primary-foreground/70 mb-10 max-w-2xl mx-auto">
-            Rejoignez les 500+ plateformes qui font confiance à TrustLayer pour leurs workflows 
-            de vérification, preuves et conformité.
+            Rejoignez les 500+ plateformes qui font confiance à TrustLayer pour
+            leurs workflows de vérification, preuves et conformité.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
@@ -41,7 +41,8 @@ export function CTASection() {
           </div>
 
           <p className="text-sm text-primary-foreground/50">
-            Démo personnalisée de 30 min • Sandbox illimité pendant 14 jours • Sans engagement
+            Démo personnalisée de 30 min • Sandbox illimité pendant 14 jours •
+            Sans engagement
           </p>
         </div>
       </div>

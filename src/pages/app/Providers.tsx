@@ -4,11 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePlatform } from "@/hooks/usePlatform";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Plus, 
-  Search, 
-  Copy, 
-  Mail, 
+import {
+  Plus,
+  Search,
+  Copy,
+  Mail,
   MoreHorizontal,
   CheckCircle2,
   Clock,
@@ -17,7 +17,7 @@ import {
   Ban,
   Loader2,
   Link2,
-  RefreshCw
+  RefreshCw,
 } from "lucide-react";
 import {
   Dialog,
@@ -44,13 +44,40 @@ interface EndUserProfile {
   updated_at: string;
 }
 
-const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  active: { label: "Actif", color: "bg-success/10 text-success", icon: CheckCircle2 },
-  needs_docs: { label: "Documents requis", color: "bg-warning/10 text-warning", icon: Clock },
-  in_review: { label: "En revue", color: "bg-accent/10 text-accent", icon: Clock },
-  approved: { label: "Approuvé", color: "bg-success/10 text-success", icon: CheckCircle2 },
-  rejected: { label: "Rejeté", color: "bg-destructive/10 text-destructive", icon: XCircle },
-  blocked: { label: "Bloqué", color: "bg-destructive/10 text-destructive", icon: Ban },
+const statusConfig: Record<
+  string,
+  { label: string; color: string; icon: React.ElementType }
+> = {
+  active: {
+    label: "Actif",
+    color: "bg-success/10 text-success",
+    icon: CheckCircle2,
+  },
+  needs_docs: {
+    label: "Documents requis",
+    color: "bg-warning/10 text-warning",
+    icon: Clock,
+  },
+  in_review: {
+    label: "En revue",
+    color: "bg-accent/10 text-accent",
+    icon: Clock,
+  },
+  approved: {
+    label: "Approuvé",
+    color: "bg-success/10 text-success",
+    icon: CheckCircle2,
+  },
+  rejected: {
+    label: "Rejeté",
+    color: "bg-destructive/10 text-destructive",
+    icon: XCircle,
+  },
+  blocked: {
+    label: "Bloqué",
+    color: "bg-destructive/10 text-destructive",
+    icon: Ban,
+  },
 };
 
 export default function Providers() {
@@ -117,18 +144,19 @@ export default function Providers() {
       if (error) throw error;
 
       // Generate magic link immediately
-      const { data: linkData, error: linkError } = await supabase.functions.invoke("create-magic-link", {
-        body: {
-          platform_id: currentPlatform.id,
-          end_user_id: data.id,
-          expires_in_days: 7,
-        },
-      });
+      const { data: linkData, error: linkError } =
+        await supabase.functions.invoke("create-magic-link", {
+          body: {
+            platform_id: currentPlatform.id,
+            end_user_id: data.id,
+            expires_in_days: 7,
+          },
+        });
 
       if (linkError) throw linkError;
 
       setGeneratedLink(linkData.magic_link_url);
-      setProviders(prev => [data, ...prev]);
+      setProviders((prev) => [data, ...prev]);
       toast.success("Prestataire créé avec succès");
     } catch (err) {
       if (import.meta.env.DEV) console.error("Error creating provider:", err);
@@ -143,13 +171,16 @@ export default function Providers() {
 
     setGeneratingLink(providerId);
     try {
-      const { data, error } = await supabase.functions.invoke("create-magic-link", {
-        body: {
-          platform_id: currentPlatform.id,
-          end_user_id: providerId,
-          expires_in_days: 7,
+      const { data, error } = await supabase.functions.invoke(
+        "create-magic-link",
+        {
+          body: {
+            platform_id: currentPlatform.id,
+            end_user_id: providerId,
+            expires_in_days: 7,
+          },
         },
-      });
+      );
 
       if (error) throw error;
 
@@ -174,9 +205,10 @@ export default function Providers() {
     setGeneratedLink(null);
   };
 
-  const filteredProviders = providers.filter(p =>
-    p.business_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.contact_email?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredProviders = providers.filter(
+    (p) =>
+      p.business_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.contact_email?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   if (platformLoading || loading) {
@@ -196,7 +228,9 @@ export default function Providers() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Prestataires</h1>
-            <p className="text-muted-foreground">Gérez vos prestataires et leurs documents</p>
+            <p className="text-muted-foreground">
+              Gérez vos prestataires et leurs documents
+            </p>
           </div>
           <Dialog open={showNewModal} onOpenChange={setShowNewModal}>
             <DialogTrigger asChild>
@@ -208,7 +242,9 @@ export default function Providers() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>
-                  {generatedLink ? "Lien d'invitation" : "Ajouter un prestataire"}
+                  {generatedLink
+                    ? "Lien d'invitation"
+                    : "Ajouter un prestataire"}
                 </DialogTitle>
               </DialogHeader>
 
@@ -220,7 +256,12 @@ export default function Providers() {
                     </label>
                     <Input
                       value={newProvider.business_name}
-                      onChange={(e) => setNewProvider(prev => ({ ...prev, business_name: e.target.value }))}
+                      onChange={(e) =>
+                        setNewProvider((prev) => ({
+                          ...prev,
+                          business_name: e.target.value,
+                        }))
+                      }
                       placeholder="Ex: Transport Express SARL"
                     />
                   </div>
@@ -231,7 +272,12 @@ export default function Providers() {
                     <Input
                       type="email"
                       value={newProvider.contact_email}
-                      onChange={(e) => setNewProvider(prev => ({ ...prev, contact_email: e.target.value }))}
+                      onChange={(e) =>
+                        setNewProvider((prev) => ({
+                          ...prev,
+                          contact_email: e.target.value,
+                        }))
+                      }
                       placeholder="contact@exemple.fr"
                     />
                   </div>
@@ -241,34 +287,50 @@ export default function Providers() {
                     </label>
                     <Input
                       value={newProvider.contact_phone}
-                      onChange={(e) => setNewProvider(prev => ({ ...prev, contact_phone: e.target.value }))}
+                      onChange={(e) =>
+                        setNewProvider((prev) => ({
+                          ...prev,
+                          contact_phone: e.target.value,
+                        }))
+                      }
                       placeholder="06 12 34 56 78"
                     />
                   </div>
                   <div className="flex gap-3 pt-4">
-                    <Button variant="outline" className="flex-1" onClick={resetModal}>
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={resetModal}
+                    >
                       Annuler
                     </Button>
-                    <Button 
-                      className="flex-1" 
+                    <Button
+                      className="flex-1"
                       onClick={handleCreateProvider}
                       disabled={creating || !newProvider.business_name.trim()}
                     >
-                      {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Créer"}
+                      {creating ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Créer"
+                      )}
                     </Button>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-4 pt-4">
                   <p className="text-sm text-muted-foreground">
-                    Partagez ce lien avec le prestataire pour qu'il puisse soumettre ses documents :
+                    Partagez ce lien avec le prestataire pour qu'il puisse
+                    soumettre ses documents :
                   </p>
                   <div className="p-3 bg-secondary rounded-lg">
-                    <code className="text-xs break-all text-foreground">{generatedLink}</code>
+                    <code className="text-xs break-all text-foreground">
+                      {generatedLink}
+                    </code>
                   </div>
                   <div className="flex gap-3">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="flex-1"
                       onClick={() => copyLink(generatedLink)}
                     >
@@ -276,8 +338,8 @@ export default function Providers() {
                       Copier
                     </Button>
                     {newProvider.contact_email && (
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         className="flex-1"
                         onClick={() => {
                           window.location.href = `mailto:${newProvider.contact_email}?subject=Vos documents - ${currentPlatform?.name}&body=Bonjour,%0A%0AVeuillez soumettre vos documents via ce lien :%0A${generatedLink}%0A%0ACordialement`;
@@ -316,8 +378,8 @@ export default function Providers() {
               {searchQuery ? "Aucun résultat" : "Aucun prestataire"}
             </h3>
             <p className="text-muted-foreground text-sm mb-4">
-              {searchQuery 
-                ? "Essayez une autre recherche" 
+              {searchQuery
+                ? "Essayez une autre recherche"
                 : "Commencez par ajouter votre premier prestataire"}
             </p>
             {!searchQuery && (
@@ -349,23 +411,38 @@ export default function Providers() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {filteredProviders.map((provider) => {
-                    const status = statusConfig[provider.status] || statusConfig.needs_docs;
+                    const status =
+                      statusConfig[provider.status] || statusConfig.needs_docs;
                     const StatusIcon = status.icon;
 
                     return (
-                      <tr key={provider.id} className="hover:bg-secondary/30 transition-colors">
+                      <tr
+                        key={provider.id}
+                        className="hover:bg-secondary/30 transition-colors"
+                      >
                         <td className="px-4 py-3">
-                          <p className="font-medium text-foreground">{provider.business_name}</p>
+                          <p className="font-medium text-foreground">
+                            {provider.business_name}
+                          </p>
                           <p className="text-xs text-muted-foreground">
-                            Créé le {new Date(provider.created_at).toLocaleDateString("fr-FR")}
+                            Créé le{" "}
+                            {new Date(provider.created_at).toLocaleDateString(
+                              "fr-FR",
+                            )}
                           </p>
                         </td>
                         <td className="px-4 py-3 hidden md:table-cell">
-                          <p className="text-sm text-foreground">{provider.contact_email || "-"}</p>
-                          <p className="text-xs text-muted-foreground">{provider.contact_phone || ""}</p>
+                          <p className="text-sm text-foreground">
+                            {provider.contact_email || "-"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {provider.contact_phone || ""}
+                          </p>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${status.color}`}>
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${status.color}`}
+                          >
                             <StatusIcon className="h-3 w-3" />
                             {status.label}
                           </span>
@@ -383,7 +460,9 @@ export default function Providers() {
                               ) : (
                                 <Link2 className="h-4 w-4" />
                               )}
-                              <span className="hidden sm:inline ml-1">Lien</span>
+                              <span className="hidden sm:inline ml-1">
+                                Lien
+                              </span>
                             </Button>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -392,7 +471,11 @@ export default function Providers() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleGenerateLink(provider.id)}>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleGenerateLink(provider.id)
+                                  }
+                                >
                                   <RefreshCw className="h-4 w-4 mr-2" />
                                   Nouveau lien
                                 </DropdownMenuItem>

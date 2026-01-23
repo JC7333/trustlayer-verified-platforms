@@ -2,9 +2,9 @@ name: Vérification
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
   push:
-    branches: [ "lovable-dev" ]
+    branches: ["lovable-dev"]
 
 jobs:
   verifier:

@@ -3,16 +3,16 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlatform } from "@/hooks/usePlatform";
 import { Button } from "@/components/ui/button";
-import { 
-  FileText, 
-  CheckCircle2, 
+import {
+  FileText,
+  CheckCircle2,
   Clock,
   Loader2,
   ChevronDown,
   ChevronUp,
   Shield,
   Car,
-  AlertTriangle
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -52,7 +52,9 @@ export default function Rules() {
       const { data: packs, error: packError } = await supabase
         .from("rules_packages")
         .select("*")
-        .or(`is_template.eq.true${currentPlatform ? `,platform_id.eq.${currentPlatform.id}` : ""}`)
+        .or(
+          `is_template.eq.true${currentPlatform ? `,platform_id.eq.${currentPlatform.id}` : ""}`,
+        )
         .order("is_template", { ascending: false });
 
       if (packError) throw packError;
@@ -67,13 +69,15 @@ export default function Rules() {
             .order("is_required", { ascending: false });
 
           return { ...pack, items: items || [] };
-        })
+        }),
       );
 
       setPackages(packagesWithItems);
-      
+
       // Auto-expand VTC pack
-      const vtcPack = packagesWithItems.find(p => p.id === "a1b2c3d4-e5f6-7890-abcd-ef1234567890");
+      const vtcPack = packagesWithItems.find(
+        (p) => p.id === "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      );
       if (vtcPack) {
         setExpandedPack(vtcPack.id);
       }
@@ -96,7 +100,8 @@ export default function Rules() {
 
   const formatExpirationDays = (days: number | null) => {
     if (!days) return "Sans expiration";
-    if (days >= 365) return `${Math.round(days / 365)} an${days >= 730 ? "s" : ""}`;
+    if (days >= 365)
+      return `${Math.round(days / 365)} an${days >= 730 ? "s" : ""}`;
     if (days >= 30) return `${Math.round(days / 30)} mois`;
     return `${days} jours`;
   };
@@ -116,7 +121,9 @@ export default function Rules() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Packs de règles</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            Packs de règles
+          </h1>
           <p className="text-muted-foreground">
             Configurez les documents requis pour vos prestataires
           </p>
@@ -127,10 +134,13 @@ export default function Rules() {
           <div className="flex items-start gap-3">
             <Car className="h-5 w-5 text-accent shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-medium text-foreground mb-1">Pack VTC / Livraison France</h3>
+              <h3 className="font-medium text-foreground mb-1">
+                Pack VTC / Livraison France
+              </h3>
               <p className="text-sm text-muted-foreground">
-                Ce pack contient les documents obligatoires pour les chauffeurs VTC et livreurs en France.
-                Il est automatiquement appliqué à tous les nouveaux prestataires.
+                Ce pack contient les documents obligatoires pour les chauffeurs
+                VTC et livreurs en France. Il est automatiquement appliqué à
+                tous les nouveaux prestataires.
               </p>
             </div>
           </div>
@@ -141,7 +151,8 @@ export default function Rules() {
           {packages.map((pack) => {
             const VerticalIcon = getVerticalIcon(pack.vertical);
             const isExpanded = expandedPack === pack.id;
-            const requiredCount = pack.items?.filter(i => i.is_required).length || 0;
+            const requiredCount =
+              pack.items?.filter((i) => i.is_required).length || 0;
             const optionalCount = (pack.items?.length || 0) - requiredCount;
 
             return (
@@ -157,10 +168,12 @@ export default function Rules() {
                   <div className="h-12 w-12 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
                     <VerticalIcon className="h-6 w-6 text-accent" />
                   </div>
-                  
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-foreground">{pack.name}</h3>
+                      <h3 className="font-semibold text-foreground">
+                        {pack.name}
+                      </h3>
                       {pack.is_template && (
                         <span className="px-2 py-0.5 rounded-full text-xs bg-accent/10 text-accent">
                           Template
@@ -172,7 +185,9 @@ export default function Rules() {
                     </p>
                     <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
                       <span>{requiredCount} obligatoires</span>
-                      {optionalCount > 0 && <span>{optionalCount} optionnels</span>}
+                      {optionalCount > 0 && (
+                        <span>{optionalCount} optionnels</span>
+                      )}
                       <span>Validité: {pack.validity_days} jours</span>
                     </div>
                   </div>
@@ -189,23 +204,34 @@ export default function Rules() {
                   <div className="border-t border-border">
                     <div className="divide-y divide-border">
                       {pack.items.map((item) => (
-                        <div key={item.id} className="p-4 flex items-start gap-3">
-                          <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${
-                            item.is_required 
-                              ? "bg-destructive/10 text-destructive" 
-                              : "bg-muted text-muted-foreground"
-                          }`}>
+                        <div
+                          key={item.id}
+                          className="p-4 flex items-start gap-3"
+                        >
+                          <div
+                            className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${
+                              item.is_required
+                                ? "bg-destructive/10 text-destructive"
+                                : "bg-muted text-muted-foreground"
+                            }`}
+                          >
                             <FileText className="h-4 w-4" />
                           </div>
-                          
+
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
-                              <h4 className="font-medium text-foreground text-sm">{item.name}</h4>
+                              <h4 className="font-medium text-foreground text-sm">
+                                {item.name}
+                              </h4>
                               {item.is_required && (
-                                <span className="text-xs text-destructive">Obligatoire</span>
+                                <span className="text-xs text-destructive">
+                                  Obligatoire
+                                </span>
                               )}
                             </div>
-                            <p className="text-xs text-muted-foreground mb-1">{item.description}</p>
+                            <p className="text-xs text-muted-foreground mb-1">
+                              {item.description}
+                            </p>
                             <div className="flex gap-3 text-xs text-muted-foreground">
                               <span className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
@@ -228,7 +254,9 @@ export default function Rules() {
         {packages.length === 0 && (
           <div className="text-center py-12 bg-card rounded-xl border border-border">
             <AlertTriangle className="h-12 w-12 text-warning mx-auto mb-4" />
-            <h3 className="font-semibold text-foreground mb-2">Aucun pack configuré</h3>
+            <h3 className="font-semibold text-foreground mb-2">
+              Aucun pack configuré
+            </h3>
             <p className="text-muted-foreground text-sm">
               Contactez le support pour configurer vos packs de règles
             </p>

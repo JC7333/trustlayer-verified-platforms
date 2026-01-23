@@ -1,6 +1,7 @@
 # Backlog (1 ticket = 1 PR)
 
 ## Semaine en cours — Top 10
+
 1. [ ] Rate limiting sur endpoints publics (Edge Functions)
 2. [ ] Webhooks sortants v1 (approved/rejected/expired)
 3. [ ] API keys + permissions minimales
@@ -13,6 +14,7 @@
 10. [ ] Politique purge RGPD automatique
 
 ## Definition of Done (DoD) — obligatoire
+
 - RLS OK + test A/B
 - Pas de secrets en front
 - Logs sans PII sensible

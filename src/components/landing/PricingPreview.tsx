@@ -76,7 +76,8 @@ export function PricingPreview() {
             Tarification transparente
           </h2>
           <p className="text-lg text-muted-foreground">
-            Payez par vérification avec des forfaits mensuels prévisibles. Sans engagement, sans frais cachés.
+            Payez par vérification avec des forfaits mensuels prévisibles. Sans
+            engagement, sans frais cachés.
           </p>
         </div>
 
@@ -100,27 +101,41 @@ export function PricingPreview() {
               )}
 
               <div className="mb-6">
-                <h3 className={`text-xl font-bold mb-2 ${plan.popular ? "text-primary-foreground" : "text-foreground"}`}>
+                <h3
+                  className={`text-xl font-bold mb-2 ${plan.popular ? "text-primary-foreground" : "text-foreground"}`}
+                >
                   {plan.name}
                 </h3>
                 <div className="flex items-baseline gap-1">
-                  <span className={`text-4xl font-bold ${plan.popular ? "text-primary-foreground" : "text-foreground"}`}>
+                  <span
+                    className={`text-4xl font-bold ${plan.popular ? "text-primary-foreground" : "text-foreground"}`}
+                  >
                     {plan.price}
                   </span>
-                  <span className={`text-sm ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                  <span
+                    className={`text-sm ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}
+                  >
                     {plan.period}
                   </span>
                 </div>
-                <p className={`text-sm mt-2 ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                <p
+                  className={`text-sm mt-2 ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}
+                >
                   {plan.description}
                 </p>
               </div>
 
-              <div className={`p-4 rounded-xl mb-6 ${plan.popular ? "bg-primary-foreground/10" : "bg-secondary"}`}>
-                <p className={`text-sm font-semibold ${plan.popular ? "text-primary-foreground" : "text-foreground"}`}>
+              <div
+                className={`p-4 rounded-xl mb-6 ${plan.popular ? "bg-primary-foreground/10" : "bg-secondary"}`}
+              >
+                <p
+                  className={`text-sm font-semibold ${plan.popular ? "text-primary-foreground" : "text-foreground"}`}
+                >
                   {plan.verifications}
                 </p>
-                <p className={`text-xs mt-1 ${plan.popular ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                <p
+                  className={`text-xs mt-1 ${plan.popular ? "text-primary-foreground/60" : "text-muted-foreground"}`}
+                >
                   {plan.overage}
                 </p>
               </div>
@@ -128,8 +143,12 @@ export function PricingPreview() {
               <ul className="space-y-3 mb-8">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-3">
-                    <Check className={`h-5 w-5 shrink-0 mt-0.5 ${plan.popular ? "text-accent" : "text-accent"}`} />
-                    <span className={`text-sm ${plan.popular ? "text-primary-foreground/90" : "text-muted-foreground"}`}>
+                    <Check
+                      className={`h-5 w-5 shrink-0 mt-0.5 ${plan.popular ? "text-accent" : "text-accent"}`}
+                    />
+                    <span
+                      className={`text-sm ${plan.popular ? "text-primary-foreground/90" : "text-muted-foreground"}`}
+                    >
                       {feature}
                     </span>
                   </li>
@@ -151,8 +170,11 @@ export function PricingPreview() {
 
         <div className="max-w-2xl mx-auto mt-12 p-6 rounded-2xl bg-secondary/50 border border-border text-center">
           <p className="text-sm text-muted-foreground">
-            <strong className="text-foreground">Tous les plans incluent :</strong> Audit trail complet • Chiffrement AES-256 • 
-            Conformité RGPD • Hébergement UE • Support technique
+            <strong className="text-foreground">
+              Tous les plans incluent :
+            </strong>{" "}
+            Audit trail complet • Chiffrement AES-256 • Conformité RGPD •
+            Hébergement UE • Support technique
           </p>
         </div>
       </div>

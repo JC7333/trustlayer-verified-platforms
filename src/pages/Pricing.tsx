@@ -9,7 +9,8 @@ const plans = [
     name: "Starter",
     price: "299€",
     period: "/mois",
-    description: "Pour les plateformes qui démarrent leur processus de vérification",
+    description:
+      "Pour les plateformes qui démarrent leur processus de vérification",
     verifications: "100 vérifications/mois incluses",
     overage: "3€ par vérification supplémentaire",
     features: [
@@ -28,7 +29,8 @@ const plans = [
     name: "Pro",
     price: "799€",
     period: "/mois",
-    description: "Pour les plateformes en croissance qui automatisent leurs vérifications",
+    description:
+      "Pour les plateformes en croissance qui automatisent leurs vérifications",
     verifications: "1 000 vérifications/mois incluses",
     overage: "2€ par vérification supplémentaire",
     features: [
@@ -50,7 +52,8 @@ const plans = [
     name: "Enterprise",
     price: "Sur mesure",
     period: "",
-    description: "Pour les grandes plateformes avec des besoins de conformité complexes",
+    description:
+      "Pour les grandes plateformes avec des besoins de conformité complexes",
     verifications: "Vérifications illimitées",
     overage: "Remises volume disponibles",
     features: [
@@ -71,27 +74,33 @@ const plans = [
 const faqs = [
   {
     question: "Qu'est-ce qui compte comme une vérification ?",
-    answer: "Une vérification est comptée chaque fois qu'une demande de vérification est soumise pour revue. Les brouillons ne sont pas comptés tant qu'ils ne sont pas soumis.",
+    answer:
+      "Une vérification est comptée chaque fois qu'une demande de vérification est soumise pour revue. Les brouillons ne sont pas comptés tant qu'ils ne sont pas soumis.",
   },
   {
     question: "Puis-je changer de plan en cours de mois ?",
-    answer: "Oui, vous pouvez passer à un plan supérieur à tout moment. Les rétrogradations prennent effet au début du prochain cycle de facturation.",
+    answer:
+      "Oui, vous pouvez passer à un plan supérieur à tout moment. Les rétrogradations prennent effet au début du prochain cycle de facturation.",
   },
   {
     question: "Proposez-vous une facturation annuelle ?",
-    answer: "Oui, la facturation annuelle est disponible avec une réduction de 20% sur tous les plans.",
+    answer:
+      "Oui, la facturation annuelle est disponible avec une réduction de 20% sur tous les plans.",
   },
   {
     question: "Que se passe-t-il si je dépasse ma limite de vérifications ?",
-    answer: "Vous serez facturé au tarif de dépassement par vérification supplémentaire. Nous vous notifions à 80% et 100% d'utilisation.",
+    answer:
+      "Vous serez facturé au tarif de dépassement par vérification supplémentaire. Nous vous notifions à 80% et 100% d'utilisation.",
   },
   {
     question: "Y a-t-il une période d'essai gratuite ?",
-    answer: "Oui ! Tous les plans incluent un essai gratuit de 14 jours avec accès complet aux fonctionnalités. Aucune carte bancaire requise.",
+    answer:
+      "Oui ! Tous les plans incluent un essai gratuit de 14 jours avec accès complet aux fonctionnalités. Aucune carte bancaire requise.",
   },
   {
     question: "Mes données sont-elles sécurisées ?",
-    answer: "Absolument. Nous utilisons le chiffrement AES-256 au repos et TLS 1.3 en transit. Nos serveurs sont hébergés en Europe avec conformité RGPD.",
+    answer:
+      "Absolument. Nous utilisons le chiffrement AES-256 au repos et TLS 1.3 en transit. Nos serveurs sont hébergés en Europe avec conformité RGPD.",
   },
 ];
 
@@ -99,7 +108,7 @@ export default function Pricing() {
   return (
     <div className="min-h-screen bg-background">
       <MarketingNav />
-      
+
       <main className="pt-24">
         {/* Header */}
         <section className="py-16 bg-secondary/30">
@@ -113,8 +122,9 @@ export default function Pricing() {
                 Tarification transparente pour toutes les tailles
               </h1>
               <p className="text-lg text-muted-foreground">
-                Payez par vérification avec des plans mensuels prévisibles. Tous les plans incluent 
-                les fonctionnalités essentielles, l'audit trail et la conformité RGPD.
+                Payez par vérification avec des plans mensuels prévisibles. Tous
+                les plans incluent les fonctionnalités essentielles, l'audit
+                trail et la conformité RGPD.
               </p>
             </div>
           </div>
@@ -142,27 +152,41 @@ export default function Pricing() {
                   )}
 
                   <div className="mb-6">
-                    <h3 className={`text-xl font-bold mb-2 ${plan.popular ? "text-primary-foreground" : "text-foreground"}`}>
+                    <h3
+                      className={`text-xl font-bold mb-2 ${plan.popular ? "text-primary-foreground" : "text-foreground"}`}
+                    >
                       {plan.name}
                     </h3>
                     <div className="flex items-baseline gap-1">
-                      <span className={`text-4xl font-bold ${plan.popular ? "text-primary-foreground" : "text-foreground"}`}>
+                      <span
+                        className={`text-4xl font-bold ${plan.popular ? "text-primary-foreground" : "text-foreground"}`}
+                      >
                         {plan.price}
                       </span>
-                      <span className={`text-sm ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                      <span
+                        className={`text-sm ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}
+                      >
                         {plan.period}
                       </span>
                     </div>
-                    <p className={`text-sm mt-2 ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                    <p
+                      className={`text-sm mt-2 ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}
+                    >
                       {plan.description}
                     </p>
                   </div>
 
-                  <div className={`p-3 rounded-lg mb-6 ${plan.popular ? "bg-primary-foreground/10" : "bg-secondary"}`}>
-                    <p className={`text-sm font-medium ${plan.popular ? "text-primary-foreground" : "text-foreground"}`}>
+                  <div
+                    className={`p-3 rounded-lg mb-6 ${plan.popular ? "bg-primary-foreground/10" : "bg-secondary"}`}
+                  >
+                    <p
+                      className={`text-sm font-medium ${plan.popular ? "text-primary-foreground" : "text-foreground"}`}
+                    >
                       {plan.verifications}
                     </p>
-                    <p className={`text-xs ${plan.popular ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                    <p
+                      className={`text-xs ${plan.popular ? "text-primary-foreground/60" : "text-muted-foreground"}`}
+                    >
                       {plan.overage}
                     </p>
                   </div>
@@ -170,8 +194,12 @@ export default function Pricing() {
                   <ul className="space-y-3 mb-8">
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex items-start gap-3">
-                        <Check className={`h-5 w-5 shrink-0 ${plan.popular ? "text-accent" : "text-accent"}`} />
-                        <span className={`text-sm ${plan.popular ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                        <Check
+                          className={`h-5 w-5 shrink-0 ${plan.popular ? "text-accent" : "text-accent"}`}
+                        />
+                        <span
+                          className={`text-sm ${plan.popular ? "text-primary-foreground/80" : "text-muted-foreground"}`}
+                        >
                           {feature}
                         </span>
                       </li>
@@ -202,13 +230,18 @@ export default function Pricing() {
                     Calculez vos économies
                   </h2>
                   <p className="text-muted-foreground mb-6">
-                    En moyenne, nos clients économisent <strong className="text-foreground">12h/semaine</strong> sur 
-                    les tâches de vérification et réduisent les erreurs de conformité de <strong className="text-foreground">87%</strong>.
+                    En moyenne, nos clients économisent{" "}
+                    <strong className="text-foreground">12h/semaine</strong> sur
+                    les tâches de vérification et réduisent les erreurs de
+                    conformité de{" "}
+                    <strong className="text-foreground">87%</strong>.
                   </p>
                   <div className="flex flex-wrap gap-4">
                     <div className="text-center">
                       <p className="text-3xl font-bold text-accent">-90%</p>
-                      <p className="text-xs text-muted-foreground">Temps manuel</p>
+                      <p className="text-xs text-muted-foreground">
+                        Temps manuel
+                      </p>
                     </div>
                     <div className="text-center">
                       <p className="text-3xl font-bold text-accent">-87%</p>
@@ -241,12 +274,19 @@ export default function Pricing() {
               </h2>
               <div className="space-y-4">
                 {faqs.map((faq) => (
-                  <div key={faq.question} className="bg-card rounded-xl p-6 border border-border">
+                  <div
+                    key={faq.question}
+                    className="bg-card rounded-xl p-6 border border-border"
+                  >
                     <div className="flex items-start gap-3">
                       <HelpCircle className="h-5 w-5 text-accent shrink-0 mt-0.5" />
                       <div>
-                        <h3 className="font-semibold text-foreground mb-2">{faq.question}</h3>
-                        <p className="text-sm text-muted-foreground">{faq.answer}</p>
+                        <h3 className="font-semibold text-foreground mb-2">
+                          {faq.question}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {faq.answer}
+                        </p>
                       </div>
                     </div>
                   </div>

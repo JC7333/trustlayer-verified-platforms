@@ -1,6 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Shield, CheckCircle2, ArrowRight, Sparkles, Play, Users, FileCheck, Zap } from "lucide-react";
+import {
+  Shield,
+  CheckCircle2,
+  ArrowRight,
+  Sparkles,
+  Play,
+  Users,
+  FileCheck,
+  Zap,
+} from "lucide-react";
 import heroBackground from "@/assets/hero-background.jpg";
 import { useEffect, useState } from "react";
 
@@ -22,13 +31,17 @@ export function HeroSection() {
   }, []);
 
   return (
-    <section 
+    <section
       className="relative min-h-screen flex items-center justify-center overflow-hidden"
-      style={{ backgroundImage: `url(${heroBackground})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+      style={{
+        backgroundImage: `url(${heroBackground})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
     >
       {/* Overlay for better text readability */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/90 via-primary/80 to-primary/70" />
-      
+
       {/* Animated particles */}
       <div className="absolute inset-0 overflow-hidden">
         {[...Array(20)].map((_, i) => (
@@ -54,7 +67,10 @@ export function HeroSection() {
               <span className="relative inline-flex rounded-full h-3 w-3 bg-success"></span>
             </span>
             <span className="text-sm font-medium text-primary-foreground/90">
-              <span className="font-bold text-accent">{count.toLocaleString()}</span> vérifications ce mois
+              <span className="font-bold text-accent">
+                {count.toLocaleString()}
+              </span>{" "}
+              vérifications ce mois
             </span>
           </div>
 
@@ -66,13 +82,20 @@ export function HeroSection() {
           </h1>
 
           {/* Subheadline */}
-          <p className="text-lg sm:text-xl text-primary-foreground/70 max-w-2xl mx-auto mb-10 animate-slide-up" style={{ animationDelay: "0.1s" }}>
-            Centralisez les preuves, automatisez les contrôles et délivrez des badges de confiance. 
-            La plateforme de vérification conçue pour les marketplaces B2B.
+          <p
+            className="text-lg sm:text-xl text-primary-foreground/70 max-w-2xl mx-auto mb-10 animate-slide-up"
+            style={{ animationDelay: "0.1s" }}
+          >
+            Centralisez les preuves, automatisez les contrôles et délivrez des
+            badges de confiance. La plateforme de vérification conçue pour les
+            marketplaces B2B.
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 animate-slide-up" style={{ animationDelay: "0.2s" }}>
+          <div
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 animate-slide-up"
+            style={{ animationDelay: "0.2s" }}
+          >
             <Link to="/demo">
               <Button variant="hero" size="xl" className="group">
                 Réserver une démo
@@ -88,17 +111,27 @@ export function HeroSection() {
           </div>
 
           {/* Stats row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto mb-16 animate-fade-in" style={{ animationDelay: "0.3s" }}>
+          <div
+            className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto mb-16 animate-fade-in"
+            style={{ animationDelay: "0.3s" }}
+          >
             {stats.map((stat) => (
               <div key={stat.label} className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-primary-foreground mb-1">{stat.value}</div>
-                <div className="text-sm text-primary-foreground/60">{stat.label}</div>
+                <div className="text-2xl sm:text-3xl font-bold text-primary-foreground mb-1">
+                  {stat.value}
+                </div>
+                <div className="text-sm text-primary-foreground/60">
+                  {stat.label}
+                </div>
               </div>
             ))}
           </div>
 
           {/* Trust Indicators */}
-          <div className="flex flex-wrap items-center justify-center gap-8 text-primary-foreground/60 animate-fade-in" style={{ animationDelay: "0.4s" }}>
+          <div
+            className="flex flex-wrap items-center justify-center gap-8 text-primary-foreground/60 animate-fade-in"
+            style={{ animationDelay: "0.4s" }}
+          >
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-accent" />
               <span className="text-sm">SOC 2 Type II</span>
@@ -123,36 +156,52 @@ export function HeroSection() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-primary-foreground">Prestataire Vérifié</span>
+                  <span className="text-sm font-semibold text-primary-foreground">
+                    Prestataire Vérifié
+                  </span>
                   <CheckCircle2 className="h-4 w-4 text-success" />
                 </div>
-                <span className="text-xs text-primary-foreground/60">Pack Santé-FR • Score 94/100</span>
+                <span className="text-xs text-primary-foreground/60">
+                  Pack Santé-FR • Score 94/100
+                </span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="absolute top-32 left-10 hidden xl:block animate-float" style={{ animationDelay: "2s" }}>
+        <div
+          className="absolute top-32 left-10 hidden xl:block animate-float"
+          style={{ animationDelay: "2s" }}
+        >
           <div className="glass-dark rounded-xl p-3 shadow-lg">
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/20">
                 <FileCheck className="h-4 w-4 text-success" />
               </div>
               <div>
-                <span className="text-xs font-medium text-primary-foreground">Document validé</span>
-                <p className="text-[10px] text-primary-foreground/50">Attestation RC Pro</p>
+                <span className="text-xs font-medium text-primary-foreground">
+                  Document validé
+                </span>
+                <p className="text-[10px] text-primary-foreground/50">
+                  Attestation RC Pro
+                </p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="absolute top-48 right-32 hidden xl:block animate-float" style={{ animationDelay: "3s" }}>
+        <div
+          className="absolute top-48 right-32 hidden xl:block animate-float"
+          style={{ animationDelay: "3s" }}
+        >
           <div className="glass-dark rounded-xl p-3 shadow-lg">
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/20">
                 <Zap className="h-4 w-4 text-accent" />
               </div>
-              <span className="text-xs font-medium text-primary-foreground">+23 vérifications aujourd'hui</span>
+              <span className="text-xs font-medium text-primary-foreground">
+                +23 vérifications aujourd'hui
+              </span>
             </div>
           </div>
         </div>
