@@ -205,6 +205,41 @@ export default function Providers() {
     setGeneratedLink(null);
   };
 
+  const isSafeEmail = (email: string) => {
+    const e = email.trim();
+
+    // Interdit les caractères qui permettent d'injecter des paramètres ou schémas
+    if (!e) return false;
+    if (e.includes("?") || e.includes("&") || e.includes("#")) return false;
+
+    // Validation simple (suffisante pour sécurité UI)
+    const basicEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return basicEmailRegex.test(e);
+  };
+
+  const buildProviderMailto = (
+    emailRaw: string,
+    platformName: string,
+    link: string,
+  ) => {
+    const email = emailRaw.trim();
+
+    const subject = `Vos documents - ${platformName || "Plateforme"}`;
+    const body = `Bonjour,
+
+Veuillez soumettre vos documents via ce lien :
+${link}
+
+Cordialement`;
+
+    // URL() gère proprement l'encodage via searchParams
+    const url = new URL(`mailto:${email}`);
+    url.searchParams.set("subject", subject);
+    url.searchParams.set("body", body);
+
+    return url.toString();
+  };
+
   const filteredProviders = providers.filter(
     (p) =>
       p.business_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -342,7 +377,24 @@ export default function Providers() {
                         variant="outline"
                         className="flex-1"
                         onClick={() => {
-                          window.location.href = `mailto:${newProvider.contact_email}?subject=Vos documents - ${currentPlatform?.name}&body=Bonjour,%0A%0AVeuillez soumettre vos documents via ce lien :%0A${generatedLink}%0A%0ACordialement`;
+                          const email = newProvider.contact_email?.trim() ?? "";
+
+                          if (!generatedLink) {
+                            toast.error("Lien magic link non généré.");
+                            return;
+                          }
+
+                          if (!isSafeEmail(email)) {
+                            toast.error("Email invalide.");
+                            return;
+                          }
+
+                          const mailto = buildProviderMailto(
+                            email,
+                            currentPlatform?.name ?? "Plateforme",
+                            generatedLink,
+                          );
+                          window.location.assign(mailto);
                         }}
                       >
                         <Mail className="h-4 w-4" />
