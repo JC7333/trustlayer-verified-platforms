@@ -1,30 +1,16 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { supabase } from "@/integrations/supabase/client";
-import { usePlatform } from "@/hooks/usePlatform";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Plus,
-  Search,
-  Copy,
-  Mail,
-  MoreHorizontal,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  XCircle,
-  Ban,
-  Loader2,
-  Link2,
-  RefreshCw,
-} from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -33,9 +19,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import {
+  Copy,
+  Mail,
+  MoreHorizontal,
+  Plus,
+  RefreshCw,
+  Search,
+  Trash2,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { usePlatform } from "@/hooks/usePlatform";
 
-interface EndUserProfile {
+interface ProviderRow {
   id: string;
+  platform_id: string;
   business_name: string;
   contact_email: string | null;
   contact_phone: string | null;
@@ -46,175 +44,87 @@ interface EndUserProfile {
 
 const statusConfig: Record<
   string,
-  { label: string; color: string; icon: React.ElementType }
+  {
+    label: string;
+    variant: "default" | "secondary" | "destructive" | "outline";
+  }
 > = {
-  active: {
-    label: "Actif",
-    color: "bg-success/10 text-success",
-    icon: CheckCircle2,
-  },
-  needs_docs: {
-    label: "Documents requis",
-    color: "bg-warning/10 text-warning",
-    icon: Clock,
-  },
-  in_review: {
-    label: "En revue",
-    color: "bg-accent/10 text-accent",
-    icon: Clock,
-  },
-  approved: {
-    label: "Approuvé",
-    color: "bg-success/10 text-success",
-    icon: CheckCircle2,
-  },
-  rejected: {
-    label: "Rejeté",
-    color: "bg-destructive/10 text-destructive",
-    icon: XCircle,
-  },
-  blocked: {
-    label: "Bloqué",
-    color: "bg-destructive/10 text-destructive",
-    icon: Ban,
-  },
+  pending: { label: "En attente", variant: "secondary" },
+  submitted: { label: "Soumis", variant: "outline" },
+  verified: { label: "Vérifié", variant: "default" },
+  rejected: { label: "Rejeté", variant: "destructive" },
 };
 
 export default function Providers() {
-  const { currentPlatform, loading: platformLoading } = usePlatform();
-  const [providers, setProviders] = useState<EndUserProfile[]>([]);
+  const { currentPlatform } = usePlatform();
+
+  const [providers, setProviders] = useState<ProviderRow[]>([]);
   const [loading, setLoading] = useState(true);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [showNewModal, setShowNewModal] = useState(false);
   const [creating, setCreating] = useState(false);
+
   const [newProvider, setNewProvider] = useState({
     business_name: "",
     contact_email: "",
     contact_phone: "",
   });
-  const [generatedLink, setGeneratedLink] = useState<string | null>(null);
-  const [generatingLink, setGeneratingLink] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (currentPlatform) {
-      fetchProviders();
-    }
-  }, [currentPlatform]);
+  const [generatedLink, setGeneratedLink] = useState<string | null>(null);
+  const [generatingForProviderId, setGeneratingForProviderId] = useState<
+    string | null
+  >(null);
 
   const fetchProviders = async () => {
-    if (!currentPlatform) return;
+    if (!currentPlatform?.id) return;
+    setLoading(true);
 
-    try {
-      const { data, error } = await supabase
-        .from("end_user_profiles")
-        .select("*")
-        .eq("platform_id", currentPlatform.id)
-        .order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("end_user_profiles")
+      .select(
+        "id, platform_id, business_name, contact_email, contact_phone, status, created_at, updated_at",
+      )
+      .eq("platform_id", currentPlatform.id)
+      .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setProviders(data || []);
-    } catch (err) {
-      if (import.meta.env.DEV) console.error("Error fetching providers:", err);
-      toast.error("Erreur lors du chargement des prestataires");
-    } finally {
+    if (error) {
+      toast.error("Erreur chargement prestataires");
       setLoading(false);
-    }
-  };
-
-  const handleCreateProvider = async () => {
-    if (!currentPlatform || !newProvider.business_name.trim()) {
-      toast.error("Le nom est obligatoire");
       return;
     }
 
-    setCreating(true);
-    try {
-      const { data, error } = await supabase
-        .from("end_user_profiles")
-        .insert({
-          platform_id: currentPlatform.id,
-          business_name: newProvider.business_name.trim(),
-          contact_email: newProvider.contact_email.trim() || null,
-          contact_phone: newProvider.contact_phone.trim() || null,
-          status: "needs_docs",
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Generate magic link immediately
-      const { data: linkData, error: linkError } =
-        await supabase.functions.invoke("create-magic-link", {
-          body: {
-            platform_id: currentPlatform.id,
-            end_user_id: data.id,
-            expires_in_days: 7,
-          },
-        });
-
-      if (linkError) throw linkError;
-
-      setGeneratedLink(linkData.magic_link_url);
-      setProviders((prev) => [data, ...prev]);
-      toast.success("Prestataire créé avec succès");
-    } catch (err) {
-      if (import.meta.env.DEV) console.error("Error creating provider:", err);
-      toast.error("Erreur lors de la création");
-    } finally {
-      setCreating(false);
-    }
+    setProviders((data as ProviderRow[]) ?? []);
+    setLoading(false);
   };
 
-  const handleGenerateLink = async (providerId: string) => {
-    if (!currentPlatform) return;
-
-    setGeneratingLink(providerId);
-    try {
-      const { data, error } = await supabase.functions.invoke(
-        "create-magic-link",
-        {
-          body: {
-            platform_id: currentPlatform.id,
-            end_user_id: providerId,
-            expires_in_days: 7,
-          },
-        },
-      );
-
-      if (error) throw error;
-
-      await navigator.clipboard.writeText(data.magic_link_url);
-      toast.success("Lien copié dans le presse-papiers !");
-    } catch (err) {
-      if (import.meta.env.DEV) console.error("Error generating link:", err);
-      toast.error("Erreur lors de la génération du lien");
-    } finally {
-      setGeneratingLink(null);
-    }
-  };
-
-  const copyLink = async (link: string) => {
-    await navigator.clipboard.writeText(link);
-    toast.success("Lien copié !");
-  };
+  useEffect(() => {
+    fetchProviders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlatform?.id]);
 
   const resetModal = () => {
-    setShowNewModal(false);
-    setNewProvider({ business_name: "", contact_email: "", contact_phone: "" });
+    setNewProvider({
+      business_name: "",
+      contact_email: "",
+      contact_phone: "",
+    });
     setGeneratedLink(null);
   };
 
-  const isSafeEmail = (email: string) => {
-    const e = email.trim();
+  // ===== Mail helpers (safe) =====
+  const isSafeEmail = (emailRaw: string) => {
+    const email = (emailRaw ?? "").trim();
 
-    // Interdit les caractères qui permettent d'injecter des paramètres ou schémas
-    if (!e) return false;
-    if (e.includes("?") || e.includes("&") || e.includes("#")) return false;
+    if (!email) return false;
+    if (email.includes("?") || email.includes("&") || email.includes("#"))
+      return false;
+    if (email.includes(" ")) return false;
 
-    // Validation simple (suffisante pour sécurité UI)
-    const basicEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return basicEmailRegex.test(e);
+    const strictEmailRegex =
+      /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/;
+
+    return strictEmailRegex.test(email);
   };
 
   const buildProviderMailto = (
@@ -222,7 +132,7 @@ export default function Providers() {
     platformName: string,
     link: string,
   ) => {
-    const email = emailRaw.trim();
+    const email = (emailRaw ?? "").trim();
 
     const subject = `Vos documents - ${platformName || "Plateforme"}`;
     const body = `Bonjour,
@@ -232,7 +142,6 @@ ${link}
 
 Cordialement`;
 
-    // URL() gère proprement l'encodage via searchParams
     const url = new URL(`mailto:${email}`);
     url.searchParams.set("subject", subject);
     url.searchParams.set("body", body);
@@ -240,282 +149,232 @@ Cordialement`;
     return url.toString();
   };
 
-  const filteredProviders = providers.filter(
-    (p) =>
-      p.business_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.contact_email?.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const canSendProviderEmail =
+    Boolean(generatedLink) && isSafeEmail(newProvider.contact_email ?? "");
 
-  if (platformLoading || loading) {
-    return (
-      <AppLayout>
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </AppLayout>
+  const handleSendProviderEmail = () => {
+    const email = (newProvider.contact_email ?? "").trim();
+
+    if (!generatedLink) {
+      toast.error("Lien non généré.");
+      return;
+    }
+
+    if (!isSafeEmail(email)) {
+      toast.error("Email invalide.");
+      return;
+    }
+
+    const mailto = buildProviderMailto(
+      email,
+      currentPlatform?.name ?? "Plateforme",
+      generatedLink,
     );
-  }
+
+    window.location.assign(mailto);
+    toast.success("Brouillon email prêt dans votre client mail.");
+  };
+
+  const handleCreateProvider = async () => {
+    if (!currentPlatform?.id) return;
+
+    const businessName = newProvider.business_name.trim();
+    const email = newProvider.contact_email.trim();
+    const phone = newProvider.contact_phone.trim();
+
+    if (!businessName) {
+      toast.error("Nom de société requis");
+      return;
+    }
+
+    if (email && !isSafeEmail(email)) {
+      toast.error("Email invalide");
+      return;
+    }
+
+    setCreating(true);
+
+    const { data, error } = await supabase
+      .from("end_user_profiles")
+      .insert({
+        platform_id: currentPlatform.id,
+        business_name: businessName,
+        contact_email: email || null,
+        contact_phone: phone || null,
+        status: "pending",
+      })
+      .select()
+      .single();
+
+    if (error || !data) {
+      toast.error("Erreur création prestataire");
+      setCreating(false);
+      return;
+    }
+
+    toast.success("Prestataire créé");
+    setCreating(false);
+
+    // Génère directement un lien Magic Link
+    await handleGenerateLink(data.id);
+
+    await fetchProviders();
+  };
+
+  const handleGenerateLink = async (providerId: string) => {
+    if (!currentPlatform?.id) return;
+
+    setGeneratingForProviderId(providerId);
+
+    const { data, error } = await supabase.functions.invoke(
+      "create-magic-link",
+      {
+        body: {
+          platform_id: currentPlatform.id,
+          end_user_profile_id: providerId,
+        },
+      },
+    );
+
+    if (error) {
+      toast.error("Erreur génération lien");
+      setGeneratingForProviderId(null);
+      return;
+    }
+
+    const link = data?.url as string | undefined;
+
+    if (!link) {
+      toast.error("Lien non généré");
+      setGeneratingForProviderId(null);
+      return;
+    }
+
+    setGeneratedLink(link);
+    toast.success("Lien généré");
+    setGeneratingForProviderId(null);
+  };
+
+  const copyLink = async (link: string) => {
+    try {
+      await navigator.clipboard.writeText(link);
+      toast.success("Lien copié");
+    } catch {
+      toast.error("Impossible de copier le lien");
+    }
+  };
+
+  const handleDeleteProvider = async (providerId: string) => {
+    if (!currentPlatform?.id) return;
+
+    const { error } = await supabase
+      .from("end_user_profiles")
+      .delete()
+      .eq("id", providerId)
+      .eq("platform_id", currentPlatform.id);
+
+    if (error) {
+      toast.error("Erreur suppression prestataire");
+      return;
+    }
+
+    toast.success("Prestataire supprimé");
+    await fetchProviders();
+  };
+
+  const filteredProviders = providers.filter((p) => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      p.business_name.toLowerCase().includes(q) ||
+      (p.contact_email ?? "").toLowerCase().includes(q) ||
+      (p.contact_phone ?? "").toLowerCase().includes(q)
+    );
+  });
 
   return (
     <AppLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Prestataires</h1>
+            <h1 className="text-2xl font-bold">Prestataires</h1>
             <p className="text-muted-foreground">
-              Gérez vos prestataires et leurs documents
+              Gérez vos prestataires et générez des liens d&apos;upload
             </p>
           </div>
-          <Dialog open={showNewModal} onOpenChange={setShowNewModal}>
-            <DialogTrigger asChild>
-              <Button variant="accent">
-                <Plus className="h-4 w-4" />
-                Nouveau prestataire
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>
-                  {generatedLink
-                    ? "Lien d'invitation"
-                    : "Ajouter un prestataire"}
-                </DialogTitle>
-              </DialogHeader>
 
-              {!generatedLink ? (
-                <div className="space-y-4 pt-4">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">
-                      Nom / Raison sociale *
-                    </label>
-                    <Input
-                      value={newProvider.business_name}
-                      onChange={(e) =>
-                        setNewProvider((prev) => ({
-                          ...prev,
-                          business_name: e.target.value,
-                        }))
-                      }
-                      placeholder="Ex: Transport Express SARL"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">
-                      Email (optionnel)
-                    </label>
-                    <Input
-                      type="email"
-                      value={newProvider.contact_email}
-                      onChange={(e) =>
-                        setNewProvider((prev) => ({
-                          ...prev,
-                          contact_email: e.target.value,
-                        }))
-                      }
-                      placeholder="contact@exemple.fr"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">
-                      Téléphone (optionnel)
-                    </label>
-                    <Input
-                      value={newProvider.contact_phone}
-                      onChange={(e) =>
-                        setNewProvider((prev) => ({
-                          ...prev,
-                          contact_phone: e.target.value,
-                        }))
-                      }
-                      placeholder="06 12 34 56 78"
-                    />
-                  </div>
-                  <div className="flex gap-3 pt-4">
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={resetModal}
-                    >
-                      Annuler
-                    </Button>
-                    <Button
-                      className="flex-1"
-                      onClick={handleCreateProvider}
-                      disabled={creating || !newProvider.business_name.trim()}
-                    >
-                      {creating ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        "Créer"
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4 pt-4">
-                  <p className="text-sm text-muted-foreground">
-                    Partagez ce lien avec le prestataire pour qu'il puisse
-                    soumettre ses documents :
-                  </p>
-                  <div className="p-3 bg-secondary rounded-lg">
-                    <code className="text-xs break-all text-foreground">
-                      {generatedLink}
-                    </code>
-                  </div>
-                  <div className="flex gap-3">
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => copyLink(generatedLink)}
-                    >
-                      <Copy className="h-4 w-4" />
-                      Copier
-                    </Button>
-                    {newProvider.contact_email && (
-                      <Button
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => {
-                          const email = newProvider.contact_email?.trim() ?? "";
-
-                          if (!generatedLink) {
-                            toast.error("Lien magic link non généré.");
-                            return;
-                          }
-
-                          if (!isSafeEmail(email)) {
-                            toast.error("Email invalide.");
-                            return;
-                          }
-
-                          const mailto = buildProviderMailto(
-                            email,
-                            currentPlatform?.name ?? "Plateforme",
-                            generatedLink,
-                          );
-                          window.location.assign(mailto);
-                        }}
-                      >
-                        <Mail className="h-4 w-4" />
-                        Email
-                      </Button>
-                    )}
-                  </div>
-                  <Button className="w-full" onClick={resetModal}>
-                    Terminer
-                  </Button>
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
+          <Button
+            onClick={() => {
+              resetModal();
+              setShowNewModal(true);
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nouveau prestataire
+          </Button>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Rechercher un prestataire..."
-            className="pl-10"
-          />
-        </div>
-
-        {/* Providers List */}
-        {filteredProviders.length === 0 ? (
-          <div className="text-center py-12 bg-card rounded-xl border border-border">
-            <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-semibold text-foreground mb-2">
-              {searchQuery ? "Aucun résultat" : "Aucun prestataire"}
-            </h3>
-            <p className="text-muted-foreground text-sm mb-4">
-              {searchQuery
-                ? "Essayez une autre recherche"
-                : "Commencez par ajouter votre premier prestataire"}
-            </p>
-            {!searchQuery && (
-              <Button variant="accent" onClick={() => setShowNewModal(true)}>
-                <Plus className="h-4 w-4" />
-                Ajouter un prestataire
-              </Button>
-            )}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              placeholder="Rechercher..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
+        </div>
+
+        {loading ? (
+          <div className="text-muted-foreground">Chargement...</div>
+        ) : filteredProviders.length === 0 ? (
+          <div className="text-muted-foreground">Aucun prestataire</div>
         ) : (
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <div className="border rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border bg-secondary/50">
-                    <th className="text-left text-sm font-medium text-muted-foreground px-4 py-3">
-                      Prestataire
-                    </th>
-                    <th className="text-left text-sm font-medium text-muted-foreground px-4 py-3 hidden md:table-cell">
-                      Contact
-                    </th>
-                    <th className="text-left text-sm font-medium text-muted-foreground px-4 py-3">
-                      Statut
-                    </th>
-                    <th className="text-right text-sm font-medium text-muted-foreground px-4 py-3">
-                      Actions
-                    </th>
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="text-left p-3 font-medium">Entreprise</th>
+                    <th className="text-left p-3 font-medium">Email</th>
+                    <th className="text-left p-3 font-medium">Téléphone</th>
+                    <th className="text-left p-3 font-medium">Statut</th>
+                    <th className="text-right p-3 font-medium">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody>
                   {filteredProviders.map((provider) => {
                     const status =
-                      statusConfig[provider.status] || statusConfig.needs_docs;
-                    const StatusIcon = status.icon;
+                      statusConfig[provider.status] ??
+                      statusConfig.pending ??
+                      ({
+                        label: provider.status,
+                        variant: "secondary",
+                      } as const);
 
                     return (
-                      <tr
-                        key={provider.id}
-                        className="hover:bg-secondary/30 transition-colors"
-                      >
-                        <td className="px-4 py-3">
-                          <p className="font-medium text-foreground">
-                            {provider.business_name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Créé le{" "}
-                            {new Date(provider.created_at).toLocaleDateString(
-                              "fr-FR",
-                            )}
-                          </p>
+                      <tr key={provider.id} className="border-t">
+                        <td className="p-3">{provider.business_name}</td>
+                        <td className="p-3">{provider.contact_email ?? "-"}</td>
+                        <td className="p-3">{provider.contact_phone ?? "-"}</td>
+                        <td className="p-3">
+                          <Badge variant={status.variant}>{status.label}</Badge>
                         </td>
-                        <td className="px-4 py-3 hidden md:table-cell">
-                          <p className="text-sm text-foreground">
-                            {provider.contact_email || "-"}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {provider.contact_phone || ""}
-                          </p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${status.color}`}
-                          >
-                            <StatusIcon className="h-3 w-3" />
-                            {status.label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-2">
+                        <td className="p-3 text-right">
+                          <div className="inline-flex items-center gap-2">
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
                               onClick={() => handleGenerateLink(provider.id)}
-                              disabled={generatingLink === provider.id}
+                              disabled={generatingForProviderId === provider.id}
                             >
-                              {generatingLink === provider.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Link2 className="h-4 w-4" />
-                              )}
-                              <span className="hidden sm:inline ml-1">
-                                Lien
-                              </span>
+                              <RefreshCw className="h-4 w-4 mr-2" />
+                              {generatingForProviderId === provider.id
+                                ? "..."
+                                : "Lien"}
                             </Button>
+
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="sm">
@@ -537,6 +396,15 @@ Cordialement`;
                                     Envoyer email
                                   </DropdownMenuItem>
                                 )}
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() =>
+                                    handleDeleteProvider(provider.id)
+                                  }
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Supprimer
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
@@ -549,6 +417,112 @@ Cordialement`;
             </div>
           </div>
         )}
+
+        <Dialog open={showNewModal} onOpenChange={setShowNewModal}>
+          <DialogContent className="sm:max-w-[560px]">
+            <DialogHeader>
+              <DialogTitle>Nouveau prestataire</DialogTitle>
+              <DialogDescription>
+                Créez un prestataire et générez un lien Magic Link pour upload
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Entreprise *</Label>
+                <Input
+                  value={newProvider.business_name}
+                  onChange={(e) =>
+                    setNewProvider((prev) => ({
+                      ...prev,
+                      business_name: e.target.value,
+                    }))
+                  }
+                  placeholder="Entreprise ABC"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    value={newProvider.contact_email}
+                    onChange={(e) =>
+                      setNewProvider((prev) => ({
+                        ...prev,
+                        contact_email: e.target.value,
+                      }))
+                    }
+                    placeholder="contact@exemple.fr"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Téléphone</Label>
+                  <Input
+                    value={newProvider.contact_phone}
+                    onChange={(e) =>
+                      setNewProvider((prev) => ({
+                        ...prev,
+                        contact_phone: e.target.value,
+                      }))
+                    }
+                    placeholder="06 00 00 00 00"
+                  />
+                </div>
+              </div>
+
+              {generatedLink && (
+                <div className="space-y-2">
+                  <Label>Lien généré</Label>
+                  <div className="flex gap-2">
+                    <Input value={generatedLink} readOnly />
+                    <Button
+                      variant="outline"
+                      onClick={() => copyLink(generatedLink)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+
+                    {newProvider.contact_email && (
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        disabled={!canSendProviderEmail}
+                        onClick={handleSendProviderEmail}
+                      >
+                        <Mail className="h-4 w-4" />
+                        Email
+                      </Button>
+                    )}
+                  </div>
+                  {!canSendProviderEmail && newProvider.contact_email && (
+                    <p className="text-xs text-muted-foreground">
+                      Saisissez un email valide pour activer le bouton.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowNewModal(false);
+                  resetModal();
+                }}
+              >
+                Fermer
+              </Button>
+
+              <Button onClick={handleCreateProvider} disabled={creating}>
+                {creating ? "Création..." : "Créer + générer lien"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );
