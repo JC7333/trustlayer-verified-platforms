@@ -1,89 +1,82 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { supabase } from "@/integrations/supabase/client";
+import { usePlatform } from "@/hooks/usePlatform";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { toast } from "sonner";
-import {
-  Copy,
-  Mail,
-  MoreHorizontal,
-  Plus,
-  RefreshCw,
-  Search,
-  Trash2,
-} from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { usePlatform } from "@/hooks/usePlatform";
+import { Loader2, Plus, Search, Copy, Mail, Phone } from "lucide-react";
 
-const normalizePhoneE164 = (input: string): string | null => {
-  if (!input) return null;
-
-  // On supprime espaces/tirets/parenthèses/points
-  const cleaned = input.replace(/[^\d+]/g, "");
-
-  // Doit commencer par +
-  if (!cleaned.startsWith("+")) return null;
-
-  // E.164: + puis 8 à 15 chiffres (max officiel)
-  const digits = cleaned.slice(1);
-  if (!/^[1-9]\d{7,14}$/.test(digits)) return null;
-
-  return `+${digits}`;
-};
-
-const isSafeEmail = (email: string): boolean => {
-  if (!email) return false;
-  const trimmed = email.trim();
-  if (trimmed.length > 254) return false;
-
-  // email "simple" mais robuste
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
-};
-
-interface ProviderRow {
+type Provider = {
   id: string;
-  platform_id: string;
   business_name: string;
   contact_email: string | null;
   contact_phone: string | null;
-  status: string;
   created_at: string;
-  updated_at: string;
-}
-
-const statusConfig: Record<
-  string,
-  {
-    label: string;
-    variant: "default" | "secondary" | "destructive" | "outline";
-  }
-> = {
-  pending: { label: "En attente", variant: "secondary" },
-  submitted: { label: "Soumis", variant: "outline" },
-  verified: { label: "Vérifié", variant: "default" },
-  rejected: { label: "Rejeté", variant: "destructive" },
 };
 
-export default function Providers() {
-  const { currentPlatform } = usePlatform();
+function isValidEmail(email: string): boolean {
+  const e = email.trim();
+  // volontairement simple et robuste
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+}
 
-  const [providers, setProviders] = useState<ProviderRow[]>([]);
+function normalizePhoneToE164(raw: string): string {
+  const input = raw.trim();
+
+  // remove spaces, dots, dashes, parentheses
+  const cleaned = input.replace(/[()\-\s.]/g, "");
+
+  // already looks like +XXXXXXXX
+  if (/^\+[1-9]\d{7,14}$/.test(cleaned)) return cleaned;
+
+  // FR convenience: 06XXXXXXXX -> +336XXXXXXXX
+  const digitsOnly = cleaned.replace(/[^\d]/g, "");
+  if (digitsOnly.length === 10 && digitsOnly.startsWith("0")) {
+    return `+33${digitsOnly.slice(1)}`;
+  }
+
+  // fallback: if user typed digits only, we prepend +
+  if (/^\d{8,15}$/.test(digitsOnly)) {
+    return `+${digitsOnly}`;
+  }
+
+  return cleaned;
+}
+
+function isValidE164Phone(phone: string): boolean {
+  const p = normalizePhoneToE164(phone);
+  return /^\+[1-9]\d{7,14}$/.test(p);
+}
+
+function buildMailtoHref(to: string, subject: string, body: string): string {
+  // sécurise fortement ce qui part dans window.location.href
+  const safeTo = encodeURIComponent(to.trim());
+  const safeSubject = encodeURIComponent(subject);
+  const safeBody = encodeURIComponent(body);
+  return `mailto:${safeTo}?subject=${safeSubject}&body=${safeBody}`;
+}
+
+export default function Providers() {
+  const { currentPlatform, loading: platformLoading } = usePlatform();
+
+  const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -97,404 +90,361 @@ export default function Providers() {
   });
 
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
-  const [generatingForProviderId, setGeneratingForProviderId] = useState<
-    string | null
-  >(null);
-
-  const fetchProviders = async () => {
-    if (!currentPlatform?.id) return;
-    setLoading(true);
-
-    const { data, error } = await supabase
-      .from("end_user_profiles")
-      .select(
-        "id, platform_id, business_name, contact_email, contact_phone, status, created_at, updated_at",
-      )
-      .eq("platform_id", currentPlatform.id)
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      toast.error("Erreur chargement prestataires");
-      setLoading(false);
-      return;
-    }
-
-    setProviders((data as ProviderRow[]) ?? []);
-    setLoading(false);
-  };
+  const [generatingLink, setGeneratingLink] = useState(false);
 
   useEffect(() => {
-    fetchProviders();
+    if (currentPlatform) {
+      fetchProviders();
+    } else {
+      // pas de plateforme => AppLayout affichera l'écran dédié
+      setLoading(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPlatform?.id]);
+  }, [currentPlatform]);
 
-  const resetModal = () => {
-    setNewProvider({
-      business_name: "",
-      contact_email: "",
-      contact_phone: "",
+  const fetchProviders = async () => {
+    if (!currentPlatform) return;
+
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("end_user_profiles")
+        .select("*")
+        .eq("platform_id", currentPlatform.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setProviders((data as Provider[]) || []);
+    } catch (err) {
+      console.error("Erreur fetchProviders:", err);
+      toast.error("Erreur chargement prestataires");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredProviders = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return providers;
+
+    return providers.filter((p) => {
+      const name = (p.business_name || "").toLowerCase();
+      const email = (p.contact_email || "").toLowerCase();
+      const phone = (p.contact_phone || "").toLowerCase();
+      return name.includes(q) || email.includes(q) || phone.includes(q);
     });
-    setGeneratedLink(null);
-  };
+  }, [providers, searchQuery]);
 
-  // ===== Mail helpers (safe) =====
-  const isSafeEmail = (emailRaw: string) => {
-    const email = (emailRaw ?? "").trim();
-
-    if (!email) return false;
-    if (email.includes("?") || email.includes("&") || email.includes("#"))
-      return false;
-    if (email.includes(" ")) return false;
-
-    const strictEmailRegex =
-      /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/;
-
-    return strictEmailRegex.test(email);
-  };
-
-  const buildProviderMailto = (
-    emailRaw: string,
-    platformName: string,
-    link: string,
-  ) => {
-    const email = (emailRaw ?? "").trim();
-
-    const subject = `Vos documents - ${platformName || "Plateforme"}`;
-    const body = `Bonjour,
-
-Veuillez soumettre vos documents via ce lien :
-${link}
-
-Cordialement`;
-
-    const url = new URL(`mailto:${email}`);
-    url.searchParams.set("subject", subject);
-    url.searchParams.set("body", body);
-
-    return url.toString();
-  };
-
-  const canSendProviderEmail =
-    Boolean(generatedLink) && isSafeEmail(newProvider.contact_email ?? "");
-
-  const handleSendProviderEmail = () => {
-    const email = (newProvider.contact_email ?? "").trim();
-
-    if (!generatedLink) {
-      toast.error("Lien non généré.");
-      return;
-    }
-
-    if (!isSafeEmail(email)) {
-      toast.error("Email invalide.");
-      return;
-    }
-
-    const mailto = buildProviderMailto(
-      email,
-      currentPlatform?.name ?? "Plateforme",
-      generatedLink,
-    );
-
-    window.location.assign(mailto);
-    toast.success("Brouillon email prêt dans votre client mail.");
-  };
+  const canCreate = useMemo(() => {
+    const nameOk = newProvider.business_name.trim().length >= 2;
+    const emailOk = isValidEmail(newProvider.contact_email);
+    const phoneOk = isValidE164Phone(newProvider.contact_phone);
+    return nameOk && emailOk && phoneOk && !creating;
+  }, [newProvider, creating]);
 
   const handleCreateProvider = async () => {
-    if (!currentPlatform?.id) return;
+    if (!currentPlatform) return;
 
     const businessName = newProvider.business_name.trim();
-    const email = newProvider.contact_email.trim();
-    const phone = newProvider.contact_phone.trim();
+    const email = newProvider.contact_email.trim().toLowerCase();
+    const phone = normalizePhoneToE164(newProvider.contact_phone);
 
-    if (!businessName) {
-      toast.error("Nom de société requis");
+    if (businessName.length < 2) {
+      toast.error("Nom du prestataire requis");
       return;
     }
-
-    if (email && !isSafeEmail(email)) {
+    if (!isValidEmail(email)) {
       toast.error("Email invalide");
+      return;
+    }
+    if (!isValidE164Phone(phone)) {
+      toast.error(
+        "Téléphone invalide (format international recommandé, ex: +33612345678)",
+      );
       return;
     }
 
     setCreating(true);
+    setGeneratedLink(null);
 
-    const emailOk = isSafeEmail(newProvider.contact_email);
-    const phoneE164 = normalizePhoneE164(newProvider.contact_phone);
-
-    if (!emailOk) {
-      toast({
-        title: "Email invalide",
-        description: "Ex: contact@exemple.fr",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!phoneE164) {
-      toast({
-        title: "Téléphone invalide",
-        description: "Format international requis : +33612345678",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("end_user_profiles")
-      .insert({
-        platform_id: currentPlatform.id,
-        business_name: businessName,
-        contact_phone: phoneE164,
-        contact_email: newProvider.contact_email.trim(),
-        status: "pending",
-      })
-      .select()
-      .single();
-
-    if (error || !data) {
-      toast.error("Erreur création prestataire");
-      setCreating(false);
-      return;
-    }
-
-    toast.success("Prestataire créé");
-    setCreating(false);
-
-    // Génère directement un lien Magic Link
-    await handleGenerateLink(data.id);
-
-    await fetchProviders();
-  };
-
-  const handleGenerateLink = async (providerId: string) => {
-    if (!currentPlatform?.id) return;
-
-    setGeneratingForProviderId(providerId);
-
-    const { data, error } = await supabase.functions.invoke(
-      "create-magic-link",
-      {
-        body: {
-          platform_id: currentPlatform?.id,
-          provider_id: providerId,
-        },
-      },
-    );
-
-    if (error) {
-      console.error("create-magic-link error:", error);
-      toast({
-        title: "Erreur génération lien",
-        description: error.message ?? "Erreur inconnue",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const magicLinkUrl = data?.magic_link_url ?? data?.magicLinkUrl ?? null;
-
-    if (!magicLinkUrl || typeof magicLinkUrl !== "string") {
-      console.error("create-magic-link bad response:", data);
-      toast({
-        title: "Erreur génération lien",
-        description: "Réponse invalide (magic_link_url manquant)",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setGeneratedLink(magicLinkUrl);
-    toast({ title: "Lien généré", description: "Lien prêt à être copié." });
-
-    const link = data?.url as string | undefined;
-
-    if (!link) {
-      toast.error("Lien non généré");
-      setGeneratingForProviderId(null);
-      return;
-    }
-
-    setGeneratedLink(link);
-    toast.success("Lien généré");
-    setGeneratingForProviderId(null);
-  };
-
-  const copyLink = async (link: string) => {
     try {
+      // 1) Create provider
+      const { data: createdProvider, error: insertError } = await supabase
+        .from("end_user_profiles")
+        .insert({
+          platform_id: currentPlatform.id,
+          business_name: businessName,
+          contact_email: email,
+          contact_phone: phone,
+          status: "active",
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      setProviders((prev) => [createdProvider as Provider, ...prev]);
+      toast.success("Prestataire créé");
+
+      // 2) Generate link (non bloquant)
+      try {
+        const { data: linkData, error: linkError } =
+          await supabase.functions.invoke("create-magic-link", {
+            body: {
+              platform_id: currentPlatform.id,
+              provider_id: createdProvider.id,
+              provider_name: businessName,
+              recipient_email: email,
+              redirect_url: `${window.location.origin}/u`,
+            },
+          });
+
+        if (linkError) {
+          console.error("Erreur create-magic-link:", linkError);
+          toast.error(
+            "Prestataire créé, mais erreur génération lien (voir console)",
+          );
+        } else {
+          setGeneratedLink(linkData?.magic_link || null);
+        }
+      } catch (err) {
+        console.error("Erreur génération lien:", err);
+        toast.error(
+          "Prestataire créé, mais erreur génération lien (voir console)",
+        );
+      }
+
+      // reset form
+      setNewProvider({
+        business_name: "",
+        contact_email: "",
+        contact_phone: "",
+      });
+    } catch (err) {
+      console.error("Erreur création prestataire:", err);
+      toast.error("Erreur création prestataire");
+    } finally {
+      setCreating(false);
+      setShowNewModal(false);
+    }
+  };
+
+  const handleGenerateLink = async (provider: Provider) => {
+    if (!currentPlatform) return;
+
+    if (!provider.contact_email || !isValidEmail(provider.contact_email)) {
+      toast.error("Email prestataire manquant ou invalide");
+      return;
+    }
+
+    setGeneratingLink(true);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "create-magic-link",
+        {
+          body: {
+            platform_id: currentPlatform.id,
+            provider_id: provider.id,
+            provider_name: provider.business_name,
+            recipient_email: provider.contact_email,
+            redirect_url: `${window.location.origin}/u`,
+          },
+        },
+      );
+
+      if (error) throw error;
+
+      const link = data?.magic_link;
+      if (!link) throw new Error("Lien manquant dans la réponse");
+
+      setGeneratedLink(link);
       await navigator.clipboard.writeText(link);
       toast.success("Lien copié");
-    } catch {
-      toast.error("Impossible de copier le lien");
+    } catch (err) {
+      console.error("Erreur génération lien:", err);
+      toast.error("Erreur génération lien");
+    } finally {
+      setGeneratingLink(false);
     }
   };
 
-  const handleDeleteProvider = async (providerId: string) => {
-    if (!currentPlatform?.id) return;
+  const openMailClient = (email: string) => {
+    if (!generatedLink) {
+      toast.error("Aucun lien généré");
+      return;
+    }
+    if (!currentPlatform) return;
 
-    const { error } = await supabase
-      .from("end_user_profiles")
-      .delete()
-      .eq("id", providerId)
-      .eq("platform_id", currentPlatform.id);
-
-    if (error) {
-      toast.error("Erreur suppression prestataire");
+    const safeEmail = email.trim().toLowerCase();
+    if (!isValidEmail(safeEmail)) {
+      toast.error("Email invalide");
       return;
     }
 
-    toast.success("Prestataire supprimé");
-    await fetchProviders();
-  };
+    const subject = `Vos documents - ${currentPlatform.name}`;
+    const body =
+      `Bonjour,\n\n` +
+      `Veuillez soumettre vos documents via ce lien :\n` +
+      `${generatedLink}\n\n` +
+      `Cordialement`;
 
-  const filteredProviders = providers.filter((p) => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return true;
-    return (
-      p.business_name.toLowerCase().includes(q) ||
-      (p.contact_email ?? "").toLowerCase().includes(q) ||
-      (p.contact_phone ?? "").toLowerCase().includes(q)
-    );
-  });
+    window.location.href = buildMailtoHref(safeEmail, subject, body);
+  };
 
   return (
     <AppLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Prestataires</h1>
+            <h1 className="text-2xl font-semibold">Prestataires</h1>
             <p className="text-muted-foreground">
-              Gérez vos prestataires et générez des liens d&apos;upload
+              Gère tes prestataires et génère des liens de soumission
             </p>
           </div>
-
-          <Button
-            onClick={() => {
-              resetModal();
-              setShowNewModal(true);
-            }}
-          >
-            <Plus className="h-4 w-4 mr-2" />
+          <Button onClick={() => setShowNewModal(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
             Nouveau prestataire
           </Button>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
+        <Card className="p-4">
+          <div className="flex items-center gap-2">
+            <Search className="h-4 w-4 text-muted-foreground" />
             <Input
-              className="pl-9"
-              placeholder="Rechercher..."
+              id="providers-search"
+              name="providersSearch"
+              placeholder="Rechercher prestataires..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-        </div>
+        </Card>
 
-        {loading ? (
-          <div className="text-muted-foreground">Chargement...</div>
-        ) : filteredProviders.length === 0 ? (
-          <div className="text-muted-foreground">Aucun prestataire</div>
-        ) : (
-          <div className="border rounded-lg overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left p-3 font-medium">Entreprise</th>
-                    <th className="text-left p-3 font-medium">Email</th>
-                    <th className="text-left p-3 font-medium">Téléphone</th>
-                    <th className="text-left p-3 font-medium">Statut</th>
-                    <th className="text-right p-3 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredProviders.map((provider) => {
-                    const status =
-                      statusConfig[provider.status] ??
-                      statusConfig.pending ??
-                      ({
-                        label: provider.status,
-                        variant: "secondary",
-                      } as const);
-
-                    return (
-                      <tr key={provider.id} className="border-t">
-                        <td className="p-3">{provider.business_name}</td>
-                        <td className="p-3">{provider.contact_email ?? "-"}</td>
-                        <td className="p-3">{provider.contact_phone ?? "-"}</td>
-                        <td className="p-3">
-                          <Badge variant={status.variant}>{status.label}</Badge>
-                        </td>
-                        <td className="p-3 text-right">
-                          <div className="inline-flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleGenerateLink(provider.id)}
-                              disabled={generatingForProviderId === provider.id}
-                            >
-                              <RefreshCw className="h-4 w-4 mr-2" />
-                              {generatingForProviderId === provider.id
-                                ? "..."
-                                : "Lien"}
-                            </Button>
-
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    handleGenerateLink(provider.id)
-                                  }
-                                >
-                                  <RefreshCw className="h-4 w-4 mr-2" />
-                                  Nouveau lien
-                                </DropdownMenuItem>
-                                {provider.contact_email && (
-                                  <DropdownMenuItem>
-                                    <Mail className="h-4 w-4 mr-2" />
-                                    Envoyer email
-                                  </DropdownMenuItem>
-                                )}
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() =>
-                                    handleDeleteProvider(provider.id)
-                                  }
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Supprimer
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+        <Card>
+          {loading || platformLoading ? (
+            <div className="flex items-center justify-center p-12">
+              <Loader2 className="h-6 w-6 animate-spin" />
             </div>
-          </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nom</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Téléphone</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredProviders.map((provider) => (
+                  <TableRow key={provider.id}>
+                    <TableCell className="font-medium">
+                      {provider.business_name}
+                    </TableCell>
+                    <TableCell>{provider.contact_email || "-"}</TableCell>
+                    <TableCell>{provider.contact_phone || "-"}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => handleGenerateLink(provider)}
+                        disabled={generatingLink}
+                      >
+                        {generatingLink ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                        Générer lien
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {filteredProviders.length === 0 && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={4}
+                      className="text-center text-muted-foreground py-12"
+                    >
+                      Aucun prestataire trouvé
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </Card>
+
+        {generatedLink && (
+          <Card className="p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-medium">Lien généré</p>
+                <p className="text-sm text-muted-foreground break-all">
+                  {generatedLink}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(generatedLink);
+                  toast.success("Lien copié");
+                }}
+                className="gap-2"
+              >
+                <Copy className="h-4 w-4" />
+                Copier
+              </Button>
+            </div>
+
+            {/* email + phone quick actions */}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1 gap-2"
+                onClick={() => openMailClient(newProvider.contact_email)}
+                disabled={
+                  !newProvider.contact_email ||
+                  !isValidEmail(newProvider.contact_email)
+                }
+              >
+                <Mail className="h-4 w-4" />
+                Envoyer email
+              </Button>
+
+              <Button
+                variant="outline"
+                className="flex-1 gap-2"
+                onClick={() => {
+                  const p = normalizePhoneToE164(newProvider.contact_phone);
+                  if (!isValidE164Phone(p)) {
+                    toast.error("Téléphone invalide");
+                    return;
+                  }
+                  window.location.href = `tel:${p}`;
+                }}
+                disabled={
+                  !newProvider.contact_phone ||
+                  !isValidE164Phone(newProvider.contact_phone)
+                }
+              >
+                <Phone className="h-4 w-4" />
+                Appeler
+              </Button>
+            </div>
+          </Card>
         )}
 
         <Dialog open={showNewModal} onOpenChange={setShowNewModal}>
-          <DialogContent className="sm:max-w-[560px]">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Nouveau prestataire</DialogTitle>
-              <DialogDescription>
-                Créez un prestataire et générez un lien Magic Link pour upload
-              </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Entreprise *</Label>
+                <Label>Nom du prestataire *</Label>
                 <Input
                   value={newProvider.business_name}
                   onChange={(e) =>
@@ -504,89 +454,69 @@ Cordialement`;
                     }))
                   }
                   placeholder="Entreprise ABC"
+                  required
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input
-                    type="email"
-                    value={newProvider.contact_email}
-                    onChange={(e) =>
-                      setNewProvider((prev) => ({
-                        ...prev,
-                        contact_email: e.target.value,
-                      }))
-                    }
-                    placeholder="contact@exemple.fr"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Téléphone</Label>
-                  <Input
-                    type="tel"
-                    value={newProvider.contact_phone}
-                    onChange={(e) =>
-                      setNewProvider((prev) => ({
-                        ...prev,
-                        contact_phone: e.target.value,
-                      }))
-                    }
-                    placeholder="+33 6 12 34 56 78"
-                  />
-                </div>
-              </div>
-
-              {generatedLink && (
-                <div className="space-y-2">
-                  <Label>Lien généré</Label>
-                  <div className="flex gap-2">
-                    <Input value={generatedLink} readOnly />
-                    <Button
-                      variant="outline"
-                      onClick={() => copyLink(generatedLink)}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-
-                    {newProvider.contact_email && (
-                      <Button
-                        variant="outline"
-                        className="flex-1"
-                        disabled={!canSendProviderEmail}
-                        onClick={handleSendProviderEmail}
-                      >
-                        <Mail className="h-4 w-4" />
-                        Email
-                      </Button>
-                    )}
-                  </div>
-                  {!canSendProviderEmail && newProvider.contact_email && (
-                    <p className="text-xs text-muted-foreground">
-                      Saisissez un email valide pour activer le bouton.
+              <div className="space-y-2">
+                <Label>Email *</Label>
+                <Input
+                  type="email"
+                  value={newProvider.contact_email}
+                  onChange={(e) =>
+                    setNewProvider((prev) => ({
+                      ...prev,
+                      contact_email: e.target.value,
+                    }))
+                  }
+                  placeholder="contact@exemple.fr"
+                  required
+                />
+                {!isValidEmail(newProvider.contact_email) &&
+                  newProvider.contact_email.length > 0 && (
+                    <p className="text-xs text-destructive">
+                      Format email invalide
                     </p>
                   )}
-                </div>
-              )}
-            </div>
+              </div>
 
-            <DialogFooter>
+              <div className="space-y-2">
+                <Label>Téléphone (format international) *</Label>
+                <Input
+                  type="tel"
+                  value={newProvider.contact_phone}
+                  onChange={(e) =>
+                    setNewProvider((prev) => ({
+                      ...prev,
+                      contact_phone: e.target.value,
+                    }))
+                  }
+                  onBlur={() =>
+                    setNewProvider((prev) => ({
+                      ...prev,
+                      contact_phone: normalizePhoneToE164(prev.contact_phone),
+                    }))
+                  }
+                  placeholder="+33 6 12 34 56 78"
+                  required
+                />
+                {!isValidE164Phone(newProvider.contact_phone) &&
+                  newProvider.contact_phone.length > 0 && (
+                    <p className="text-xs text-destructive">
+                      Téléphone invalide (ex: +33612345678)
+                    </p>
+                  )}
+              </div>
+
               <Button
-                variant="outline"
-                onClick={() => {
-                  setShowNewModal(false);
-                  resetModal();
-                }}
+                onClick={handleCreateProvider}
+                disabled={!canCreate}
+                className="w-full gap-2"
               >
-                Fermer
+                {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Créer
               </Button>
-
-              <Button onClick={handleCreateProvider} disabled={creating}>
-                {creating ? "Création..." : "Créer + générer lien"}
-              </Button>
-            </DialogFooter>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

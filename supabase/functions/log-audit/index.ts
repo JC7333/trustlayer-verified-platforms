@@ -1,165 +1,125 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// 🔒 Allowlists (à étendre si besoin)
-const ALLOWED_ACTIONS = new Set([
-  "evidence_approved",
-  "evidence_rejected",
-  "evidence_uploaded",
-  "magic_link_validated",
-]);
-
-const ALLOWED_ENTITY_TYPES = new Set([
-  "evidence",
-  "magic_link",
-  "end_user_profile",
-  "verification_request",
-]);
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
 
 Deno.serve(async (req) => {
+  // Preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== "POST") {
+    return jsonResponse({ error: "Method not allowed" }, 405);
+  }
+
+  const requestId = crypto.randomUUID();
+
   try {
-    const authHeader = req.headers.get("Authorization") ?? "";
-    if (!authHeader.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return jsonResponse({ error: "Unauthorized" }, 401);
     }
 
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
-      return new Response(
-        JSON.stringify({ error: "Missing Supabase env vars" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      console.error(`[log-audit] Missing env vars requestId=${requestId}`);
+      return jsonResponse(
+        { error: "Server misconfigured", request_id: requestId },
+        500,
       );
     }
 
-    // ✅ Client user (JWT)
-    const supabaseUser = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    const { data: userData, error: userErr } =
-      await supabaseUser.auth.getUser();
-    if (userErr || !userData?.user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Get user from token
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userError } =
+      await supabaseAdmin.auth.getUser(token);
+    if (userError || !userData?.user) {
+      return jsonResponse({ error: "Unauthorized" }, 401);
     }
 
     const user = userData.user;
 
-    const body = await req.json();
-    const { platform_id, action, entity_type, entity_id, old_data, new_data } =
-      body ?? {};
+    const { action, entity_type, entity_id, platform_id, details } =
+      await req.json();
 
-    if (!platform_id || !action || !entity_type) {
-      return new Response(JSON.stringify({ error: "Missing fields" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!action || !entity_type || !platform_id) {
+      return jsonResponse({ error: "Missing required fields" }, 400);
     }
 
-    // ✅ Basic hardening (allowlist)
-    if (!ALLOWED_ACTIONS.has(action)) {
-      return new Response(JSON.stringify({ error: "Action not allowed" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Minimal sanity allowlist
+    const allowedActions = new Set([
+      "create",
+      "update",
+      "delete",
+      "review",
+      "approve",
+      "reject",
+      "export",
+      "login",
+    ]);
+    if (!allowedActions.has(String(action))) {
+      return jsonResponse({ error: "Invalid action" }, 400);
     }
 
-    if (!ALLOWED_ENTITY_TYPES.has(entity_type)) {
-      return new Response(
-        JSON.stringify({ error: "Entity type not allowed" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
-
-    // ✅ Admin client (service role) : insert server-side only
-    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    // ✅ Role check (FIX : user_roles, not platform_memberships)
-    const { data: membership, error: membershipError } = await supabaseAdmin
-      .from("user_roles")
+    // Check membership (admin/service role => reads)
+    const { data: membership } = await supabaseAdmin
+      .from("platform_memberships")
       .select("role")
       .eq("platform_id", platform_id)
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (membershipError) {
-      return new Response(
-        JSON.stringify({ error: "Failed to check permissions" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+    if (!membership) {
+      return jsonResponse({ error: "Forbidden" }, 403);
     }
 
-    const allowed = ["platform_owner", "platform_admin", "reviewer"];
-    if (!membership || !allowed.includes(membership.role)) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Insert audit log
+    const { error: insertError } = await supabaseAdmin
+      .from("audit_logs")
+      .insert({
+        user_id: user.id,
+        platform_id,
+        action,
+        entity_type,
+        entity_id: entity_id || null,
+        details: details || {},
+        created_at: new Date().toISOString(),
       });
-    }
 
-    const ip_address =
-      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-    const user_agent = req.headers.get("user-agent") ?? null;
-
-    const { error: insErr } = await supabaseAdmin.from("audit_logs").insert({
-      platform_id,
-      user_id: user.id,
-      action,
-      entity_type,
-      entity_id: entity_id ?? null,
-      old_data: old_data ?? null,
-      new_data: new_data ?? null,
-      ip_address,
-      user_agent,
-    });
-
-    if (insErr) {
-      return new Response(
-        JSON.stringify({ error: String(insErr.message ?? insErr) }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+    if (insertError) {
+      console.error(
+        `[log-audit] Insert failed requestId=${requestId}`,
+        insertError,
+      );
+      return jsonResponse(
+        { error: "Internal server error", request_id: requestId },
+        500,
       );
     }
 
-    return new Response(JSON.stringify({ ok: true }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ success: true });
   } catch (e) {
-    console.error("log-audit error:", e);
-
-    return new Response(JSON.stringify({ error: "Internal Server Error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error(`[log-audit] Unhandled error requestId=${requestId}`, e);
+    // ✅ NE JAMAIS renvoyer String(e) => stack trace leak
+    return jsonResponse(
+      { error: "Internal server error", request_id: requestId },
+      500,
+    );
   }
 });
