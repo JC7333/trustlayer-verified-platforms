@@ -31,6 +31,31 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { usePlatform } from "@/hooks/usePlatform";
 
+const normalizePhoneE164 = (input: string): string | null => {
+  if (!input) return null;
+
+  // On supprime espaces/tirets/parenthèses/points
+  const cleaned = input.replace(/[^\d+]/g, "");
+
+  // Doit commencer par +
+  if (!cleaned.startsWith("+")) return null;
+
+  // E.164: + puis 8 à 15 chiffres (max officiel)
+  const digits = cleaned.slice(1);
+  if (!/^[1-9]\d{7,14}$/.test(digits)) return null;
+
+  return `+${digits}`;
+};
+
+const isSafeEmail = (email: string): boolean => {
+  if (!email) return false;
+  const trimmed = email.trim();
+  if (trimmed.length > 254) return false;
+
+  // email "simple" mais robuste
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+};
+
 interface ProviderRow {
   id: string;
   platform_id: string;
@@ -194,13 +219,34 @@ Cordialement`;
 
     setCreating(true);
 
+    const emailOk = isSafeEmail(newProvider.contact_email);
+    const phoneE164 = normalizePhoneE164(newProvider.contact_phone);
+
+    if (!emailOk) {
+      toast({
+        title: "Email invalide",
+        description: "Ex: contact@exemple.fr",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!phoneE164) {
+      toast({
+        title: "Téléphone invalide",
+        description: "Format international requis : +33612345678",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const { data, error } = await supabase
       .from("end_user_profiles")
       .insert({
         platform_id: currentPlatform.id,
         business_name: businessName,
-        contact_email: email || null,
-        contact_phone: phone || null,
+        contact_phone: phoneE164,
+        contact_email: newProvider.contact_email.trim(),
         status: "pending",
       })
       .select()
@@ -230,17 +276,36 @@ Cordialement`;
       "create-magic-link",
       {
         body: {
-          platform_id: currentPlatform.id,
-          end_user_profile_id: providerId,
+          platform_id: currentPlatform?.id,
+          provider_id: providerId,
         },
       },
     );
 
     if (error) {
-      toast.error("Erreur génération lien");
-      setGeneratingForProviderId(null);
+      console.error("create-magic-link error:", error);
+      toast({
+        title: "Erreur génération lien",
+        description: error.message ?? "Erreur inconnue",
+        variant: "destructive",
+      });
       return;
     }
+
+    const magicLinkUrl = data?.magic_link_url ?? data?.magicLinkUrl ?? null;
+
+    if (!magicLinkUrl || typeof magicLinkUrl !== "string") {
+      console.error("create-magic-link bad response:", data);
+      toast({
+        title: "Erreur génération lien",
+        description: "Réponse invalide (magic_link_url manquant)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGeneratedLink(magicLinkUrl);
+    toast({ title: "Lien généré", description: "Lien prêt à être copié." });
 
     const link = data?.url as string | undefined;
 
@@ -461,6 +526,7 @@ Cordialement`;
                 <div className="space-y-2">
                   <Label>Téléphone</Label>
                   <Input
+                    type="tel"
                     value={newProvider.contact_phone}
                     onChange={(e) =>
                       setNewProvider((prev) => ({
@@ -468,7 +534,7 @@ Cordialement`;
                         contact_phone: e.target.value,
                       }))
                     }
-                    placeholder="06 00 00 00 00"
+                    placeholder="+33 6 12 34 56 78"
                   />
                 </div>
               </div>
