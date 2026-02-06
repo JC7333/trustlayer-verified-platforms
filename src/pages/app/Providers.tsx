@@ -1,3 +1,30 @@
+export function normalizePhoneForTel(raw: string): string | null {
+  const cleaned = raw
+    .trim()
+    // enlève séparateurs usuels
+    .replace(/[()\s.-]/g, "");
+
+  // Autorise + optionnel puis 6 à 15 chiffres (approx E.164)
+  if (!/^\+?\d{6,15}$/.test(cleaned)) return null;
+
+  return cleaned;
+}
+
+// Si tu dois afficher un texte potentiellement utilisateur dans un toast "string"
+// (utile uniquement si ton système de toast réinterprète les strings en HTML)
+export function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => {
+    switch (c) {
+      case "&": return "&amp;";
+      case "<": return "&lt;";
+      case ">": return "&gt;";
+      case '"': return "&quot;";
+      case "'": return "&#39;";
+      default: return c;
+    }
+  });
+}
+
 import { useEffect, useMemo, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -492,11 +519,15 @@ export default function Providers() {
                     }))
                   }
                   onBlur={() =>
-                    setNewProvider((prev) => ({
-                      ...prev,
-                      contact_phone: normalizePhoneToE164(prev.contact_phone),
-                    }))
-                  }
+  setNewProvider((prev) => {
+    const normalized = normalizePhoneToE164(prev.contact_phone);
+    return {
+      ...prev,
+      contact_phone: normalized ?? prev.contact_phone, // ne met jamais null/undefined dans le state
+    };
+  })
+}
+
                   placeholder="+33 6 12 34 56 78"
                   required
                 />
