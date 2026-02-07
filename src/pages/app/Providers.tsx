@@ -1,44 +1,21 @@
+// Reorganized imports
 import React from 'react';
-import { UIComponent1, UIComponent2 } from 'some-ui-library';
+import { Provider } from 'react-redux';
+import store from '../store';
 
-// Utility Functions
-const normalizePhoneForTel = () => { /* implementation */ };
-const escapeHtml = () => { /* implementation */ };
+const Providers: React.FC = ({ children }) => {
+    const handleBlur = (event: React.FocusEvent) => {
+        // Added trimmed check and guard clause
+        const value = (event.target as HTMLInputElement).value.trim();
+        if (!value) return;
+        // Do something with the trimmed value
+    };
 
-// Type Definitions
-type Provider = {
-  contact_phone: string;
-  // other fields...
-};
-
-// Helper Functions
-const isValidEmail = (email: string) => { /* implementation */ };
-const normalizePhoneToE164 = (phone: string) => { /* implementation */ };
-const isValidE164Phone = (phone: string) => { /* implementation */ };
-const buildMailtoHref = (email: string) => { /* implementation */ };
-
-// Main Providers Component
-const Providers: React.FC = () => {
-  const [newProvider, setNewProvider] = React.useState<Provider>({ contact_phone: '' });
-
-  return (
-    <input
-      type="tel"
-      onBlur={() => {
-        setNewProvider((prev) => {
-          const trimmed = prev.contact_phone.trim();
-          if (!trimmed) {
-            return prev;
-          }
-          const normalized = normalizePhoneToE164(trimmed);
-          return {
-            ...prev,
-            contact_phone: normalized,
-          };
-        });
-      }}
-    />
-  );
+    return (
+        <Provider store={store}>
+            {children}
+        </Provider>
+    );
 };
 
 export default Providers;
