@@ -1,0 +1,35 @@
+name: Auto-merge lovable-dev to main
+
+permissions:
+  contents: write
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: ["lovable-dev"]
+    types: [completed]
+
+jobs:
+  merge:
+    name: Merge lovable-dev into main
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge and push
+        run: |
+          git fetch origin main lovable-dev
+          git checkout main
+          git pull origin main
+          git merge origin/lovable-dev --no-edit
+          git push origin main
