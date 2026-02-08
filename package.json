@@ -8,6 +8,7 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
+    "test:e2e": "npx playwright test",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "format": "prettier --write .",

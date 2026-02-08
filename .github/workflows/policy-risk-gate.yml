@@ -1,0 +1,48 @@
+name: Policy Risk Gate
+
+permissions:
+  contents: read
+  pull-requests: read
+
+on:
+  pull_request:
+    branches: ["main", "lovable-dev"]
+    types: [opened, reopened, synchronize, labeled, unlabeled, ready_for_review]
+
+jobs:
+  policy-risk-gate:
+    name: policy-risk-gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verifier la politique de risque
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const labels = (pr.labels || []).map((l) => l.name);
+            const isHigh = labels.includes("risk:high");
+            const isLow = labels.includes("risk:low");
+            const needsManual = labels.includes("manual-approval");
+
+            if (!isHigh && !isLow) {
+              core.setFailed("Missing risk label (risk:low or risk:high).");
+              return;
+            }
+
+            if (isHigh) {
+              if (!needsManual) {
+                core.setFailed("High-risk PR requires manual-approval label.");
+                return;
+              }
+
+              const { data: reviews } = await github.rest.pulls.listReviews({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+              });
+
+              const approvals = reviews.filter((r) => r.state === "APPROVED");
+              if (approvals.length === 0) {
+                core.setFailed("High-risk PR requires at least one approval.");
+              }
+            }

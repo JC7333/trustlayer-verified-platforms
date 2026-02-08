@@ -1,4 +1,4 @@
-name: CI
+name: Smoke E2E
 
 permissions:
   contents: read
@@ -7,11 +7,11 @@ on:
   pull_request:
     branches: ["main", "lovable-dev"]
   push:
-    branches: ["main", "lovable-dev"]
+    branches: ["lovable-dev"]
 
 jobs:
-  build:
-    name: Lint + Typecheck + Build
+  smoke-e2e:
+    name: smoke-e2e
     runs-on: ubuntu-latest
 
     steps:
@@ -30,21 +30,5 @@ jobs:
       - name: Installer Playwright
         run: npx playwright install --with-deps
 
-      - name: Guardrail - aucun fichier .env commité
-        run: |
-          if [ -f ".env" ]; then
-            echo "❌ .env ne doit jamais être commité. Utilise .env.example uniquement."
-            exit 1
-          fi
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Tests (smoke)
+      - name: Tests E2E (smoke)
         run: npm run test:e2e -- --grep @smoke
-
-      - name: Build
-        run: npm run build

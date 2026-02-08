@@ -1,0 +1,14 @@
+risk:low:
+  - "docs/**"
+  - "**/*.md"
+  - ".github/**"
+
+risk:high:
+  - "src/**"
+  - "supabase/**"
+  - "package.json"
+  - "package-lock.json"
+  - "vite.config.ts"
+  - "tailwind.config.ts"
+  - "tsconfig*.json"
+  - "eslint.config.js"
