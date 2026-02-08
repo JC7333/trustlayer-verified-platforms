@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlatform } from "@/hooks/usePlatform";
@@ -52,13 +52,7 @@ export default function Expirations() {
   const [sendingReminder, setSendingReminder] = useState<string | null>(null);
   const [runningJob, setRunningJob] = useState(false);
 
-  useEffect(() => {
-    if (currentPlatform) {
-      fetchExpiringEvidences();
-    }
-  }, [currentPlatform, filter]);
-
-  const fetchExpiringEvidences = async () => {
+  const fetchExpiringEvidences = useCallback(async () => {
     if (!currentPlatform) return;
     setLoading(true);
 
@@ -121,7 +115,13 @@ export default function Expirations() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPlatform, filter]);
+
+  useEffect(() => {
+    if (currentPlatform) {
+      fetchExpiringEvidences();
+    }
+  }, [currentPlatform, fetchExpiringEvidences]);
 
   const sendReminder = async (evidence: ExpiringEvidence) => {
     if (!evidence.end_user_profiles.contact_email) {

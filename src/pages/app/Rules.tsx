@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlatform } from "@/hooks/usePlatform";
@@ -42,11 +42,7 @@ export default function Rules() {
   const [loading, setLoading] = useState(true);
   const [expandedPack, setExpandedPack] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchPackages();
-  }, []);
-
-  const fetchPackages = async () => {
+  const fetchPackages = useCallback(async () => {
     try {
       // Fetch all packages (templates + platform-specific)
       const { data: packs, error: packError } = await supabase
@@ -87,7 +83,11 @@ export default function Rules() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPlatform]);
+
+  useEffect(() => {
+    fetchPackages();
+  }, [fetchPackages]);
 
   const getVerticalIcon = (vertical: string) => {
     switch (vertical) {

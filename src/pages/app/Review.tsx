@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlatform } from "@/hooks/usePlatform";
@@ -91,13 +91,7 @@ export default function Review() {
   const [loadingUrl, setLoadingUrl] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  useEffect(() => {
-    if (currentPlatform) {
-      fetchEvidences();
-    }
-  }, [currentPlatform, statusFilter]);
-
-  const fetchEvidences = async () => {
+  const fetchEvidences = useCallback(async () => {
     if (!currentPlatform) return;
 
     try {
@@ -126,7 +120,13 @@ export default function Review() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPlatform, statusFilter]);
+
+  useEffect(() => {
+    if (currentPlatform) {
+      fetchEvidences();
+    }
+  }, [currentPlatform, fetchEvidences]);
 
   const openEvidence = async (evidence: Evidence) => {
     setSelectedEvidence(evidence);

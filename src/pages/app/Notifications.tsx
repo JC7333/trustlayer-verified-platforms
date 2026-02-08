@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlatform } from "@/hooks/usePlatform";
@@ -69,13 +69,7 @@ export default function Notifications() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [retrying, setRetrying] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (currentPlatform) {
-      fetchNotifications();
-    }
-  }, [currentPlatform, statusFilter]);
-
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!currentPlatform) return;
 
     try {
@@ -107,7 +101,13 @@ export default function Notifications() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPlatform, statusFilter]);
+
+  useEffect(() => {
+    if (currentPlatform) {
+      fetchNotifications();
+    }
+  }, [currentPlatform, fetchNotifications]);
 
   const handleRetry = async (notif: Notification) => {
     setRetrying(notif.id);
