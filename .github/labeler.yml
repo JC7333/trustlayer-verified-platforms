@@ -1,14 +1,34 @@
 risk:low:
   - "docs/**"
   - "**/*.md"
-  - ".github/**"
+  - "public/**"
 
 risk:high:
+  - ".github/**"
   - "src/**"
   - "supabase/**"
+  - "infra/**"
+  - "scripts/**"
+  - "docker/**"
   - "package.json"
   - "package-lock.json"
   - "vite.config.ts"
   - "tailwind.config.ts"
   - "tsconfig*.json"
   - "eslint.config.js"
+
+area:frontend:
+  - "src/**"
+
+area:supabase:
+  - "supabase/**"
+
+area:github:
+  - ".github/**"
+
+area:infra:
+  - "infra/**"
+
+type:deps:
+  - "package.json"
+  - "package-lock.json"

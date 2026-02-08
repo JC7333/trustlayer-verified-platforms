@@ -4,10 +4,7 @@ permissions:
   contents: write
 
 on:
-  workflow_run:
-    workflows: ["CI"]
-    branches: ["lovable-dev"]
-    types: [completed]
+  workflow_dispatch:
 
 jobs:
   merge:
