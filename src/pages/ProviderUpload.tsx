@@ -72,11 +72,7 @@ export default function ProviderUpload() {
     expires_at: "",
   });
 
-  useEffect(() => {
-    validateToken();
-  }, [token]);
-
-  const validateToken = async () => {
+  const validateToken = useCallback(async () => {
     if (!token) {
       setError("Lien invalide");
       setLoading(false);
@@ -107,7 +103,11 @@ export default function ProviderUpload() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    validateToken();
+  }, [validateToken]);
 
   const getDocumentStatus = (
     docType: string,

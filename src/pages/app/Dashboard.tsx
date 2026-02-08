@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlatform } from "@/hooks/usePlatform";
@@ -63,13 +63,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
 
-  useEffect(() => {
-    if (currentPlatform) {
-      fetchDashboardData();
-    }
-  }, [currentPlatform]);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     if (!currentPlatform) return;
 
     try {
@@ -152,7 +146,13 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPlatform]);
+
+  useEffect(() => {
+    if (currentPlatform) {
+      fetchDashboardData();
+    }
+  }, [currentPlatform, fetchDashboardData]);
 
   const handleExport = async () => {
     if (!currentPlatform) return;
