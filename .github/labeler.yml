@@ -1,34 +1,48 @@
 risk:low:
-  - "docs/**"
-  - "**/*.md"
-  - "public/**"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "docs/**"
+          - "**/*.md"
+          - "public/**"
 
 risk:high:
-  - ".github/**"
-  - "src/**"
-  - "supabase/**"
-  - "infra/**"
-  - "scripts/**"
-  - "docker/**"
-  - "package.json"
-  - "package-lock.json"
-  - "vite.config.ts"
-  - "tailwind.config.ts"
-  - "tsconfig*.json"
-  - "eslint.config.js"
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
+          - "src/**"
+          - "supabase/**"
+          - "infra/**"
+          - "scripts/**"
+          - "docker/**"
+          - "package.json"
+          - "package-lock.json"
+          - "vite.config.ts"
+          - "tailwind.config.ts"
+          - "tsconfig*.json"
+          - "eslint.config.js"
 
 area:frontend:
-  - "src/**"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/**"
 
 area:supabase:
-  - "supabase/**"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "supabase/**"
 
 area:github:
-  - ".github/**"
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
 
 area:infra:
-  - "infra/**"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "infra/**"
 
 type:deps:
-  - "package.json"
-  - "package-lock.json"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "package.json"
+          - "package-lock.json"
