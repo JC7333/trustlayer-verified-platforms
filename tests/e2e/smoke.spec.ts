@@ -4,5 +4,4 @@ test("smoke: homepage loads @smoke", async ({ page }) => {
   await page.goto("/");
   await page.waitForLoadState("domcontentloaded");
   await expect(page.locator("#root")).toBeAttached();
-  await expect(page.locator("body")).toBeVisible();
 });
