@@ -4,7 +4,7 @@
 
 **URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
 
-PR Factory V7 validation note.
+PR Factory V7 validation note (low-risk test).
 
 ## How can I edit this code?
 
