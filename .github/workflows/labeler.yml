@@ -3,6 +3,7 @@ name: Labeler
 permissions:
   contents: read
   pull-requests: write
+  issues: write
 
 on:
   pull_request:
@@ -14,6 +15,44 @@ jobs:
     name: labeler
     runs-on: ubuntu-latest
     steps:
+      - name: Ensure labels exist
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const required = [
+              { name: "risk:low", color: "0e8a16", description: "Low-risk change" },
+              { name: "risk:high", color: "b60205", description: "High-risk change" },
+              { name: "automerge", color: "1d76db", description: "Eligible for auto-merge" },
+              { name: "manual-approval", color: "fbca04", description: "Requires manual approval" },
+              { name: "area:frontend", color: "c2e0c6", description: "Frontend changes" },
+              { name: "area:supabase", color: "c2e0c6", description: "Supabase changes" },
+              { name: "area:github", color: "c2e0c6", description: "GitHub config changes" },
+              { name: "area:infra", color: "c2e0c6", description: "Infra changes" },
+              { name: "type:deps", color: "fef2c0", description: "Dependency updates" },
+            ];
+
+            for (const label of required) {
+              try {
+                await github.rest.issues.getLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: label.name,
+                });
+              } catch (error) {
+                if (error.status === 404) {
+                  await github.rest.issues.createLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name: label.name,
+                    color: label.color,
+                    description: label.description,
+                  });
+                } else {
+                  throw error;
+                }
+              }
+            }
+
       - name: Apply labels
         uses: actions/labeler@v5
         with:
