@@ -175,7 +175,7 @@ export default function Inbox() {
         .from("evidences")
         .update({
           review_status: "approved",
-          status: "approved",
+          status: "valid",
           rejection_reason: null,
         })
         .eq("id", selectedEvidence.id);

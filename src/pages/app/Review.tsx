@@ -168,10 +168,10 @@ export default function Review() {
       // Log action
       await supabase.functions.invoke("log-audit", {
         body: {
-          platform_id,
+          platform_id: currentPlatform.id,
           action: "evidence_approved",
           entity_type: "evidence",
-          entity_id: evidenceId,
+          entity_id: selectedEvidence.id,
           old_data: null,
           new_data: { status: "approved" },
         },
@@ -216,10 +216,10 @@ export default function Review() {
       // Log action
       await supabase.functions.invoke("log-audit", {
         body: {
-          platform_id,
-          action: "evidence_approved",
+          platform_id: currentPlatform.id,
+          action: "evidence_rejected",
           entity_type: "evidence",
-          entity_id: evidenceId,
+          entity_id: selectedEvidence.id,
           old_data: null,
           new_data: { status: "approved" },
         },

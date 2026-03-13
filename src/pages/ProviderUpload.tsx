@@ -185,7 +185,7 @@ export default function ProviderUpload() {
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Erreur lors de l'upload";
-      toast.error(err.message || "Erreur lors de l'upload");
+      toast.error(message);
     } finally {
       setUploadingDoc(null);
       setShowDateModal(false);

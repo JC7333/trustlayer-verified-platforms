@@ -13,7 +13,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const { loading: authLoading } = useRequireAuth();
-  const { currentPlatform, loading: platformLoading, error } = usePlatform();
+  const { currentPlatform, loading: platformLoading } = usePlatform();
 
   if (authLoading || platformLoading) {
     return (
@@ -59,17 +59,6 @@ export function AppLayout({ children }: AppLayoutProps) {
             </AlertDescription>
           </Alert>
         </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-screen p-6">
-        <Alert className="max-w-lg">
-          <AlertTitle>Erreur</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
       </div>
     );
   }
