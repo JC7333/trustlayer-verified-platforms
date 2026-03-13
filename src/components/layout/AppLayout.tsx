@@ -13,7 +13,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const { loading: authLoading } = useRequireAuth();
-  const { currentPlatform, loading: platformLoading, error } = usePlatform();
+  const { currentPlatform, loading: platformLoading } = usePlatform();
 
   if (authLoading || platformLoading) {
     return (

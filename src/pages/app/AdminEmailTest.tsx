@@ -62,11 +62,11 @@ export default function AdminEmailTest() {
       const message = err instanceof Error ? err.message : "Erreur inconnue";
       addResult({
         success: false,
-        message: err.message || "Erreur inconnue",
+        message: message,
         timestamp: new Date(),
         type: "Demo Email",
       });
-      toast.error("Erreur: " + (err.message || "Échec de l'envoi"));
+      toast.error("Erreur: " + message);
     } finally {
       setLoading(false);
     }
