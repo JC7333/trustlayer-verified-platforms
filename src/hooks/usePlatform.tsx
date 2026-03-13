@@ -23,6 +23,7 @@ export function usePlatform() {
   const [currentPlatform, setCurrentPlatform] = useState<Platform | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -71,9 +72,11 @@ export function usePlatform() {
             }
           }
         }
-      } catch (error) {
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Erreur de chargement des plateformes";
+        setError(message);
         if (import.meta.env.DEV) {
-          console.error("Error fetching platforms:", error);
+          console.error("Error fetching platforms:", err);
         }
       } finally {
         setLoading(false);
@@ -108,6 +111,7 @@ export function usePlatform() {
     currentPlatform,
     userRole,
     loading,
+    error,
     switchPlatform,
     hasRole,
   };
