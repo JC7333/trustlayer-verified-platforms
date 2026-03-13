@@ -63,17 +63,6 @@ export function AppLayout({ children }: AppLayoutProps) {
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-screen p-6">
-        <Alert className="max-w-lg">
-          <AlertTitle>Erreur</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />
