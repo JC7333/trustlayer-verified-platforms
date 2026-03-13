@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Sidebar } from "@/components/ui/sidebar";
+import { Sidebar, SidebarProvider } from "@/components/ui/sidebar";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { usePlatform } from "@/hooks/usePlatform";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -64,9 +64,11 @@ export function AppLayout({ children }: AppLayoutProps) {
   }
 
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar />
-      <main className="flex-1 overflow-auto">{children}</main>
-    </div>
+    <SidebarProvider>
+      <div className="flex h-screen bg-background w-full">
+        <Sidebar />
+        <main className="flex-1 overflow-auto">{children}</main>
+      </div>
+    </SidebarProvider>
   );
 }
