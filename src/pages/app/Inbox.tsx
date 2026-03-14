@@ -238,24 +238,24 @@ export default function Inbox() {
 
       if (updErr) throw updErr;
 
-      // 2) Audit log (server-only)
-      const auditPayload = {
-        platform_id: selectedEvidence.platform_id,
-        action: "evidence_rejected",
-        entity_type: "evidence",
-        entity_id: selectedEvidence.id,
-        new_data: {
-          document_type: selectedEvidence.document_type,
-          reason: fullReason,
-          business_name: selectedEvidence.end_user_profiles.business_name,
-        },
-      };
-
-      const { error: auditErr } = await supabase.functions.invoke("log-audit", {
-        body: auditPayload,
-      });
-
-      if (auditErr) throw auditErr;
+      // 2) Audit log (best-effort, don't block rejection)
+      try {
+        await supabase.functions.invoke("log-audit", {
+          body: {
+            platform_id: selectedEvidence.platform_id,
+            action: "reject",
+            entity_type: "evidence",
+            entity_id: selectedEvidence.id,
+            details: {
+              document_type: selectedEvidence.document_type,
+              reason: fullReason,
+              business_name: selectedEvidence.end_user_profiles.business_name,
+            },
+          },
+        });
+      } catch (auditErr) {
+        console.warn("Audit log failed (non-blocking):", auditErr);
+      }
 
       // 3) Provider status -> needs_docs
       await supabase
