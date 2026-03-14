@@ -555,23 +555,27 @@ export default function Inbox() {
                       className="max-w-full h-auto mx-auto rounded max-h-[500px] object-contain"
                     />
                   ) : (
-                    <iframe
-                      src={signedUrl}
-                      className="w-full h-[500px] rounded"
-                      title={selectedEvidence?.document_name}
-                    />
+                    <div className="flex flex-col items-center justify-center h-[400px] gap-4">
+                      <FileText className="h-16 w-16 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        Aperçu PDF non disponible dans le navigateur
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => window.open(signedUrl, "_blank")}
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          Ouvrir dans un nouvel onglet
+                        </Button>
+                        <a href={signedUrl} download>
+                          <Button variant="secondary">
+                            Télécharger
+                          </Button>
+                        </a>
+                      </div>
+                    </div>
                   )}
-                  <div className="mt-2 text-center">
-                    <a
-                      href={signedUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-primary hover:underline inline-flex items-center gap-1"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      Ouvrir en grand
-                    </a>
-                  </div>
                 </>
               ) : null}
             </div>
