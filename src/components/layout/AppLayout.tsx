@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
-import { Sidebar, SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/layout/AppSidebar";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { usePlatform } from "@/hooks/usePlatform";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
