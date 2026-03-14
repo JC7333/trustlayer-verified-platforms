@@ -182,23 +182,23 @@ export default function Inbox() {
 
       if (updErr) throw updErr;
 
-      // 2) Audit log (server-only)
-      const auditPayload = {
-        platform_id: selectedEvidence.platform_id,
-        action: "evidence_approved",
-        entity_type: "evidence",
-        entity_id: selectedEvidence.id,
-        new_data: {
-          document_type: selectedEvidence.document_type,
-          business_name: selectedEvidence.end_user_profiles.business_name,
-        },
-      };
-
-      const { error: auditErr } = await supabase.functions.invoke("log-audit", {
-        body: auditPayload,
-      });
-
-      if (auditErr) throw auditErr;
+      // 2) Audit log (best-effort, don't block approval)
+      try {
+        await supabase.functions.invoke("log-audit", {
+          body: {
+            platform_id: selectedEvidence.platform_id,
+            action: "approve",
+            entity_type: "evidence",
+            entity_id: selectedEvidence.id,
+            details: {
+              document_type: selectedEvidence.document_type,
+              business_name: selectedEvidence.end_user_profiles.business_name,
+            },
+          },
+        });
+      } catch (auditErr) {
+        console.warn("Audit log failed (non-blocking):", auditErr);
+      }
 
       // 3) Check if provider can be marked as approved
       await checkAndUpdateProviderStatus(selectedEvidence.profile_id);
@@ -238,24 +238,24 @@ export default function Inbox() {
 
       if (updErr) throw updErr;
 
-      // 2) Audit log (server-only)
-      const auditPayload = {
-        platform_id: selectedEvidence.platform_id,
-        action: "evidence_rejected",
-        entity_type: "evidence",
-        entity_id: selectedEvidence.id,
-        new_data: {
-          document_type: selectedEvidence.document_type,
-          reason: fullReason,
-          business_name: selectedEvidence.end_user_profiles.business_name,
-        },
-      };
-
-      const { error: auditErr } = await supabase.functions.invoke("log-audit", {
-        body: auditPayload,
-      });
-
-      if (auditErr) throw auditErr;
+      // 2) Audit log (best-effort, don't block rejection)
+      try {
+        await supabase.functions.invoke("log-audit", {
+          body: {
+            platform_id: selectedEvidence.platform_id,
+            action: "reject",
+            entity_type: "evidence",
+            entity_id: selectedEvidence.id,
+            details: {
+              document_type: selectedEvidence.document_type,
+              reason: fullReason,
+              business_name: selectedEvidence.end_user_profiles.business_name,
+            },
+          },
+        });
+      } catch (auditErr) {
+        console.warn("Audit log failed (non-blocking):", auditErr);
+      }
 
       // 3) Provider status -> needs_docs
       await supabase
@@ -555,23 +555,27 @@ export default function Inbox() {
                       className="max-w-full h-auto mx-auto rounded max-h-[500px] object-contain"
                     />
                   ) : (
-                    <iframe
-                      src={signedUrl}
-                      className="w-full h-[500px] rounded"
-                      title={selectedEvidence?.document_name}
-                    />
+                    <div className="flex flex-col items-center justify-center h-[400px] gap-4">
+                      <FileText className="h-16 w-16 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        Aperçu PDF non disponible dans le navigateur
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => window.open(signedUrl, "_blank")}
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          Ouvrir dans un nouvel onglet
+                        </Button>
+                        <a href={signedUrl} download>
+                          <Button variant="secondary">
+                            Télécharger
+                          </Button>
+                        </a>
+                      </div>
+                    </div>
                   )}
-                  <div className="mt-2 text-center">
-                    <a
-                      href={signedUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-primary hover:underline inline-flex items-center gap-1"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      Ouvrir en grand
-                    </a>
-                  </div>
                 </>
               ) : null}
             </div>
