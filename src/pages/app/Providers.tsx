@@ -1,17 +1,16 @@
-// Assuming this is the content from the main branch, please replace this line with the actual content of src/pages/app/Providers.tsx.
-
-import React from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
 
 const Providers = () => {
-  // Your component logic here
-
-  const handleBlur = (e) => {
-    const value = e.target.value.trim();
-    if (!value) return; // Guard clause to exit early if value is empty
-    // Continue with your logic
-  };
-
-  return <input type="text" name="contact_phone" onBlur={handleBlur} />;
+  return (
+    <AppLayout>
+      <div>
+        <h1 className="text-2xl font-bold text-foreground mb-2">Prestataires</h1>
+        <p className="text-muted-foreground">
+          Gérez vos prestataires et leurs documents de conformité.
+        </p>
+      </div>
+    </AppLayout>
+  );
 };
 
 export default Providers;
