@@ -356,9 +356,13 @@ export default function ProviderUpload() {
                       <h3 className="font-medium text-foreground text-sm">
                         {doc.name}
                       </h3>
-                      {doc.is_required && (
-                        <span className="text-xs text-destructive">
+                      {doc.is_required ? (
+                        <span className="text-xs text-destructive font-medium">
                           Obligatoire
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground font-medium">
+                          Recommandé
                         </span>
                       )}
                     </div>
