@@ -145,7 +145,26 @@ const Providers = () => {
       const magicLinkUrl = res.data?.magic_link_url;
       if (magicLinkUrl) {
         await navigator.clipboard.writeText(magicLinkUrl);
-        toast.success("Magic link créé et copié dans le presse-papier");
+
+        if (provider.contact_email && provider.contact_email.trim() !== "") {
+          try {
+            const emailRes = await supabase.functions.invoke("send-notification", {
+              body: {
+                type: "new_link",
+                to_email: provider.contact_email,
+                platform_name: currentPlatform.name,
+                provider_name: provider.business_name,
+                magic_link_url: magicLinkUrl,
+              },
+            });
+            if (emailRes.error) throw emailRes.error;
+            toast.success(`Lien copié et email envoyé à ${provider.contact_email}`);
+          } catch {
+            toast.warning("Lien copié (email non envoyé)");
+          }
+        } else {
+          toast.info("Pas d'email configuré — lien copié uniquement");
+        }
       } else {
         toast.success("Magic link créé");
       }
